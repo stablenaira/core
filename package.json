@@ -1,14 +1,26 @@
 {
-  "name": "core",
-  "version": "1.0.0",
-  "type": "module",
+  "name": "dropbet",
+  "config": {
+    "network": "testnet"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "npx hardhat compile",
+    "delopments": "npx hardhat ignition deployments",
+    "delopment-status": "npx hardhat ignition status $npm_package_config_network",
+    "delopment-reset": "npx hardhat ignition wipe deploymentId $npm_package_config_network",
+    "deploy": "npx hardhat ignition deploy ignition/modules/StableNaira.js --network $npm_package_config_network --deployment-id $npm_package_config_network",
+    "verify": "npx hardhat ignition verify $npm_package_config_network"
+  },
   "devDependencies": {
-    "@nomicfoundation/hardhat-ignition": "^3.0.3",
-    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
-    "@types/node": "^22.18.3",
-    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
-    "hardhat": "^3.0.6",
-    "typescript": "~5.8.0",
-    "viem": "^2.37.5"
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.1",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.5",
+    "dotenv": "^10.0.0",
+    "hardhat": "^2.22.2"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-ignition": "^0.15.1",
+    "@openzeppelin/contracts": "^5.0.2"
   }
 }
