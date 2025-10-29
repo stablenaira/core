@@ -1,5 +1,5 @@
 {
-  "name": "dropbet",
+  "name": "Stablenaira",
   "config": {
     "network": "testnet"
   },
@@ -10,9 +10,12 @@
     "delopment-status": "npx hardhat ignition status $npm_package_config_network",
     "delopment-reset": "npx hardhat ignition wipe deploymentId $npm_package_config_network",
     "deploy": "npx hardhat ignition deploy ignition/modules/StableNaira.js --network $npm_package_config_network --deployment-id $npm_package_config_network",
-    "verify": "npx hardhat ignition verify $npm_package_config_network"
+    "deploy-price-oracle": "npx hardhat ignition deploy ignition/modules/StableNairaPriceOracle.js --network $npm_package_config_network --deployment-id $npm_package_config_network",
+    "verify": "npx hardhat ignition verify $npm_package_config_network",
+    "verify-price-oracle": "npx hardhat ignition deploy ignition/modules/StableNairaPriceOracle.js --network $npm_package_config_network --verify"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.0.3",
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.1",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.5",
@@ -20,7 +23,6 @@
     "hardhat": "^2.22.2"
   },
   "dependencies": {
-    "@nomicfoundation/hardhat-ignition": "^0.15.1",
     "@openzeppelin/contracts": "^5.0.2"
   }
 }
