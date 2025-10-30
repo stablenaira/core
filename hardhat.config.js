@@ -26,7 +26,31 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: BSCSCAN_API_KEY,
+    apiKey: {
+      mainnet: BSCSCAN_API_KEY,
+      testnet: BSCSCAN_API_KEY,
+    },
+    customChains: [
+      {
+        network: "mainnet",
+        chainId: 56,
+        urls: {
+          apiURL: `https://api.etherscan.io/v2/api?chainid=56&apikey=${BSCSCAN_API_KEY}`,
+          browserURL: "https://bscscan.com",
+        },
+      },
+      {
+        network: "testnet",
+        chainId: 97,
+        urls: {
+          apiURL: `https://api.etherscan.io/v2/api?chainid=97&apikey=${BSCSCAN_API_KEY}`,
+          browserURL: "https://testnet.bscscan.com",
+        },
+      },
+    ],
+  },
+  sourcify: {
+    enabled: true,
   },
   solidity: {
     version: "0.8.20",
