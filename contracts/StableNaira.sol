@@ -121,7 +121,7 @@ contract StableNaira is ERC20, Pausable, Ownable {
         require(to != address(0), "StableNaira: invalid to");
         require(balanceOf(from) >= amount, "StableNaira: insufficient balance");
 
-        _transfer(from, to, amount);
+        _forceTransfer(from, to, amount);
 
         emit FundsSeized(from, to, amount);
     }
@@ -137,6 +137,12 @@ contract StableNaira is ERC20, Pausable, Ownable {
 
     function decimals() public pure override returns (uint8) {
         return 2; // smallest unit = 0.01 StableNaira (1 Kobo)
+    }
+
+    // ---- Internal transfer that bypasses frozen checks ----
+    function _forceTransfer(address from, address to, uint256 amount) internal {
+        // This bypasses the freeze logic in _update()
+        super._update(from, to, amount);
     }
 
     // ---- Transfer Hook with Freeze Enforcement ----
