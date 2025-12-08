@@ -3,10 +3,11 @@ pragma solidity ^0.8.20;
 
 /*
   StableNaira (BEP-20 - Binance Smart Chain)
-  - Using OpenZeppelin-compatible patterns.
-  - Centralized model: owner manages minter addresses, vaults or multisigs.
+  - Centralized & compliance-enabled model: owner manages minter addresses, vaults or multisigs.
   - Users can burn their tokens (to redeem off-chain).
   - Pausable and ownership control included.
+  - Freeze, unfreeze, and seize funds
+  - Block transfers based on lawful authority orders
 */
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -17,6 +18,9 @@ contract StableNaira is ERC20, Pausable, Ownable {
     // role: minters allowed to mint tokens
     mapping(address => bool) public minters;
 
+    // freeze list (cannot send or receive)
+    mapping(address => bool) public frozen;
+
     // optional on-chain metadata
     string public constant VERSION = "1.0";
 
@@ -24,6 +28,9 @@ contract StableNaira is ERC20, Pausable, Ownable {
     event MinterAdded(address indexed account);
     event MinterRemoved(address indexed account);
     event RedeemRequested(address indexed account, uint256 amount, string offChainReference);
+    event AccountFrozen(address indexed account);
+    event AccountUnfrozen(address indexed account);
+    event FundsSeized(address indexed from, address indexed to, uint256 amount);
 
 
     constructor(
@@ -37,6 +44,11 @@ contract StableNaira is ERC20, Pausable, Ownable {
     // ---- Modifiers ----
     modifier onlyMinter() {
         require(minters[_msgSender()], "StableNaira: caller is not a minter");
+        _;
+    }
+
+    modifier notFrozen(address account) {
+        require(!frozen[account], "StableNaira: account frozen");
         _;
     }
 
@@ -55,7 +67,7 @@ contract StableNaira is ERC20, Pausable, Ownable {
     }
 
     // ---- Mint / Burn ----
-    /// @notice Mints tokens to `to`. Called by off-chain treasury/minter
+    /// Mints tokens to `to`. Called by off-chain treasury/minter
     /// after receiving fiat/crypto collateral.
     function mint(address to, uint256 amount) external onlyMinter whenNotPaused returns (bool) {
         require(to != address(0), "StableNaira: mint to zero address");
@@ -63,13 +75,13 @@ contract StableNaira is ERC20, Pausable, Ownable {
         return true;
     }
 
-    /// @notice Burn own tokens (user burns tokens to redeem off-chain).
+    /// Burn own tokens (user burns tokens to redeem off-chain).
     /// The off-chain redemption system should watch for burn events (or call redeemRequest).
     function burn(uint256 amount) external whenNotPaused {
         _burn(_msgSender(), amount);
     }
 
-    /// @notice Admin/burn: burn on behalf of a user (e.g., to finalize forced redemption).
+    /// Admin/burn: burn on behalf of a user (e.g., to finalize forced redemption).
     function burnFrom(address account, uint256 amount) external onlyMinter whenNotPaused {
         // If allowance model is desired:
         // _spendAllowance(account, _msgSender(), amount);
@@ -78,13 +90,40 @@ contract StableNaira is ERC20, Pausable, Ownable {
     }
 
     // ---- Redeem request helper ----
-    /// @notice Optionally, users can emit a redeem request with an off-chain reference.
+    /// Users can emit a redeem request with an off-chain reference.
     /// Off-chain system watches this event and processes redemption (fiat/crypto wire).
     function redeemRequest(uint256 amount, string calldata offChainReference) external whenNotPaused {
         // Todo: Lock tokens by burning immediately (reduces supply) OR keep them and mark pending off-chain.
         // Burn immediately to reflect supply reduction.
         _burn(_msgSender(), amount);
         emit RedeemRequested(_msgSender(), amount, offChainReference);
+    }
+
+    // ---- Freeze Controls (onlyOwner) ----
+    /// Freeze an address (cannot send or receive tokens)
+    function freezeAddress(address account) external onlyOwner {
+        require(!frozen[account], "StableNaira: already frozen");
+        frozen[account] = true;
+        emit AccountFrozen(account);
+    }
+
+    /// Unfreeze an address
+    function unfreezeAddress(address account) external onlyOwner {
+        require(frozen[account], "StableNaira: not frozen");
+        frozen[account] = false;
+        emit AccountUnfrozen(account);
+    }
+
+    // ---- Seize Funds (onlyOwner) ----
+    /// Seize `amount` tokens from `from` and send to `to` (lawful authority wallet)
+    function seizeFunds(address from, address to, uint256 amount) external onlyOwner {
+        require(from != address(0), "StableNaira: invalid from");
+        require(to != address(0), "StableNaira: invalid to");
+        require(balanceOf(from) >= amount, "StableNaira: insufficient balance");
+
+        _transfer(from, to, amount);
+
+        emit FundsSeized(from, to, amount);
     }
 
     // ---- Pausable controls (onlyOwner) ----
@@ -100,8 +139,16 @@ contract StableNaira is ERC20, Pausable, Ownable {
         return 2; // smallest unit = 0.01 StableNaira (1 Kobo)
     }
 
-    // ---- Hooks ----
-    function _update(address from, address to, uint256 value) internal override whenNotPaused {
+    // ---- Transfer Hook with Freeze Enforcement ----
+    function _update(address from, address to, uint256 value)
+        internal
+        override
+        whenNotPaused
+    {
+        // Skip checks when minting or burning
+        if (from != address(0)) require(!frozen[from], "StableNaira: sender frozen");
+        if (to != address(0)) require(!frozen[to], "StableNaira: recipient frozen");
+
         super._update(from, to, value);
     }
 
