@@ -1,4 +1,4 @@
 {
-  "StableNaira#StableNaira": "0x5a04d462B0a7b66A02c852f27179e35fEc039f70",
-  "StableNairaPriceOracle#StableNairaPriceOracle": "0xFB6C105fFc6c7d4317dbF8fF208D16d7012Fc797"
+  "StableNaira#StableNairaUUPSDeployer": "0x94EB7d3Eb3a0781fDA95D5349B59146c66aF7786",
+  "StableNairaPriceOracle#StableNairaPriceOracle": "0xDfA857983A7FD2dba072EC2c979F16Ea4eE34CFB"
 }
