@@ -95,6 +95,7 @@ contract StableNairaPriceOracle is Ownable {
     ) external {
         require(price > 0, "price=0");
         require(timestamp <= block.timestamp && block.timestamp - timestamp <= maxStalenessSec, "stale or future");
+        require(roundId > latestRoundId, "round order");
 
         bytes32 h = MessageHashUtils.toEthSignedMessageHash(_reportHash(roundId, price, timestamp));
 

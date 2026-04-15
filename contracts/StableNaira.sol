@@ -2,160 +2,229 @@
 pragma solidity ^0.8.20;
 
 /*
-  StableNaira (BEP-20 - Binance Smart Chain)
-  - Centralized & compliance-enabled model: owner manages minter addresses, vaults or multisigs.
-  - Users can burn their tokens (to redeem off-chain).
-  - Pausable and ownership control included.
-  - Freeze, unfreeze, and seize funds
-  - Block transfers based on lawful authority orders
+  StableNaira — UUPS upgradeable fiat-backed NGN stablecoin (EVM)
+
+  Deploy via StableNairaUUPSDeployer: users and integrations MUST use the ERC1967 proxy address.
+  Upgrades: address with DEFAULT_ADMIN_ROLE calls upgradeToAndCall on the proxy.
+
+  Model
+  - 1:1 off-chain NGN reserves; mint / burn aligned with reserve movements.
+  - AccessControlEnumerable roles; EIP-2612 permit; optional mintCap.
+  - Pausable, freeze blocklist, seize (forced transfer).
+
+  Validate storage layout before any upgrade (e.g. OpenZeppelin upgrades plugin).
 */
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
+import {ERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract StableNaira is ERC20, Pausable, Ownable {
-    // role: minters allowed to mint tokens
-    mapping(address => bool) public minters;
+contract StableNaira is
+    Initializable,
+    ERC20PermitUpgradeable,
+    PausableUpgradeable,
+    AccessControlEnumerableUpgradeable,
+    UUPSUpgradeable
+{
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant FREEZER_ROLE = keccak256("FREEZER_ROLE");
+    bytes32 public constant SEIZER_ROLE = keccak256("SEIZER_ROLE");
 
-    // freeze list (cannot send or receive)
-    mapping(address => bool) public frozen;
+    uint8 private constant DECIMALS = 2;
 
-    // optional on-chain metadata
     string public constant VERSION = "1.0";
 
-    // Events
-    event MinterAdded(address indexed account);
-    event MinterRemoved(address indexed account);
+    uint256 public mintCap;
+
+    mapping(address => bool) public frozen;
+
+    /// @dev Reserved for future storage variables; shrink only when appending new state.
+    uint256[50] private __gap;
+
+    error ZeroAddress();
+    error AlreadyFrozen();
+    error NotFrozen();
+    error InsufficientBalance();
+    error MintCapExceeded();
+    error SingleAdminExpected();
+    error NotAuthorizedCompliance();
+
+    event MintCapUpdated(uint256 newCap);
     event RedeemRequested(address indexed account, uint256 amount, string offChainReference);
     event AccountFrozen(address indexed account);
     event AccountUnfrozen(address indexed account);
     event FundsSeized(address indexed from, address indexed to, uint256 amount);
 
-
-    constructor(
-        string memory name_,
-        string memory symbol_
-    ) ERC20(name_, symbol_) Ownable(_msgSender()) {
-        minters[_msgSender()] = true;
-        emit MinterAdded(_msgSender());
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
     }
 
-    // ---- Modifiers ----
-    modifier onlyMinter() {
-        require(minters[_msgSender()], "StableNaira: caller is not a minter");
+    function initialize(string memory name_, string memory symbol_, address initialAdmin) public initializer {
+        __ERC20_init(name_, symbol_);
+        __ERC20Permit_init(name_);
+        __Pausable_init();
+        __AccessControlEnumerable_init();
+        __UUPSUpgradeable_init();
+
+        if (initialAdmin == address(0)) revert ZeroAddress();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
+        _grantRole(MINTER_ROLE, initialAdmin);
+        _grantRole(PAUSER_ROLE, initialAdmin);
+        _grantRole(FREEZER_ROLE, initialAdmin);
+        _grantRole(SEIZER_ROLE, initialAdmin);
+    }
+
+    modifier onlyPauserOrAdmin() {
+        address s = _msgSender();
+        if (!hasRole(PAUSER_ROLE, s) && !hasRole(DEFAULT_ADMIN_ROLE, s)) revert NotAuthorizedCompliance();
         _;
     }
 
-    modifier notFrozen(address account) {
-        require(!frozen[account], "StableNaira: account frozen");
+    modifier onlyFreezerOrAdmin() {
+        address s = _msgSender();
+        if (!hasRole(FREEZER_ROLE, s) && !hasRole(DEFAULT_ADMIN_ROLE, s)) revert NotAuthorizedCompliance();
         _;
     }
 
-    // ---- Minter management (onlyOwner) ----
-    function addMinter(address account) external onlyOwner {
-        require(account != address(0), "StableNaira: zero address");
-        require(!minters[account], "StableNaira: already minter");
-        minters[account] = true;
-        emit MinterAdded(account);
+    modifier onlySeizerOrAdmin() {
+        address s = _msgSender();
+        if (!hasRole(SEIZER_ROLE, s) && !hasRole(DEFAULT_ADMIN_ROLE, s)) revert NotAuthorizedCompliance();
+        _;
     }
 
-    function removeMinter(address account) external onlyOwner {
-        require(minters[account], "StableNaira: not a minter");
-        minters[account] = false;
-        emit MinterRemoved(account);
+    function minters(address account) external view returns (bool) {
+        return hasRole(MINTER_ROLE, account);
     }
 
-    // ---- Mint / Burn ----
-    /// Mints tokens to `to`. Called by off-chain treasury/minter
-    /// after receiving fiat/crypto collateral.
-    function mint(address to, uint256 amount) external onlyMinter whenNotPaused returns (bool) {
-        require(to != address(0), "StableNaira: mint to zero address");
+    function pausers(address account) external view returns (bool) {
+        return hasRole(PAUSER_ROLE, account);
+    }
+
+    function freezers(address account) external view returns (bool) {
+        return hasRole(FREEZER_ROLE, account);
+    }
+
+    function seizers(address account) external view returns (bool) {
+        return hasRole(SEIZER_ROLE, account);
+    }
+
+    function owner() external view returns (address) {
+        uint256 n = getRoleMemberCount(DEFAULT_ADMIN_ROLE);
+        if (n != 1) revert SingleAdminExpected();
+        return getRoleMember(DEFAULT_ADMIN_ROLE, 0);
+    }
+
+    function setMintCap(uint256 newCap) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        mintCap = newCap;
+        emit MintCapUpdated(newCap);
+    }
+
+    function addMinter(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (account == address(0)) revert ZeroAddress();
+        grantRole(MINTER_ROLE, account);
+    }
+
+    function removeMinter(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        revokeRole(MINTER_ROLE, account);
+    }
+
+    function addPauser(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (account == address(0)) revert ZeroAddress();
+        grantRole(PAUSER_ROLE, account);
+    }
+
+    function removePauser(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        revokeRole(PAUSER_ROLE, account);
+    }
+
+    function addFreezer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (account == address(0)) revert ZeroAddress();
+        grantRole(FREEZER_ROLE, account);
+    }
+
+    function removeFreezer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        revokeRole(FREEZER_ROLE, account);
+    }
+
+    function addSeizer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (account == address(0)) revert ZeroAddress();
+        grantRole(SEIZER_ROLE, account);
+    }
+
+    function removeSeizer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        revokeRole(SEIZER_ROLE, account);
+    }
+
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) whenNotPaused returns (bool) {
+        if (to == address(0)) revert ZeroAddress();
+        uint256 cap = mintCap;
+        if (cap != 0 && totalSupply() + amount > cap) revert MintCapExceeded();
         _mint(to, amount);
         return true;
     }
 
-    /// Burn own tokens (user burns tokens to redeem off-chain).
-    /// The off-chain redemption system should watch for burn events (or call redeemRequest).
     function burn(uint256 amount) external whenNotPaused {
         _burn(_msgSender(), amount);
     }
 
-    /// Admin/burn: burn on behalf of a user (e.g., to finalize forced redemption).
-    function burnFrom(address account, uint256 amount) external onlyMinter whenNotPaused {
-        // If allowance model is desired:
-        // _spendAllowance(account, _msgSender(), amount);
-        // For centralized flows: allows minters burn without allowance.
+    function burnFrom(address account, uint256 amount) external onlyRole(MINTER_ROLE) whenNotPaused {
         _burn(account, amount);
     }
 
-    // ---- Redeem request helper ----
-    /// Users can emit a redeem request with an off-chain reference.
-    /// Off-chain system watches this event and processes redemption (fiat/crypto wire).
     function redeemRequest(uint256 amount, string calldata offChainReference) external whenNotPaused {
-        // Todo: Lock tokens by burning immediately (reduces supply) OR keep them and mark pending off-chain.
-        // Burn immediately to reflect supply reduction.
         _burn(_msgSender(), amount);
         emit RedeemRequested(_msgSender(), amount, offChainReference);
     }
 
-    // ---- Freeze Controls (onlyOwner) ----
-    /// Freeze an address (cannot send or receive tokens)
-    function freezeAddress(address account) external onlyOwner {
-        require(!frozen[account], "StableNaira: already frozen");
+    function freezeAddress(address account) external onlyFreezerOrAdmin {
+        if (frozen[account]) revert AlreadyFrozen();
         frozen[account] = true;
         emit AccountFrozen(account);
     }
 
-    /// Unfreeze an address
-    function unfreezeAddress(address account) external onlyOwner {
-        require(frozen[account], "StableNaira: not frozen");
+    function unfreezeAddress(address account) external onlyFreezerOrAdmin {
+        if (!frozen[account]) revert NotFrozen();
         frozen[account] = false;
         emit AccountUnfrozen(account);
     }
 
-    // ---- Seize Funds (onlyOwner) ----
-    /// Seize `amount` tokens from `from` and send to `to` (lawful authority wallet)
-    function seizeFunds(address from, address to, uint256 amount) external onlyOwner {
-        require(from != address(0), "StableNaira: invalid from");
-        require(to != address(0), "StableNaira: invalid to");
-        require(balanceOf(from) >= amount, "StableNaira: insufficient balance");
-
+    function seizeFunds(address from, address to, uint256 amount) external onlySeizerOrAdmin {
+        if (from == address(0) || to == address(0)) revert ZeroAddress();
+        if (balanceOf(from) < amount) revert InsufficientBalance();
         _forceTransfer(from, to, amount);
-
         emit FundsSeized(from, to, amount);
     }
 
-    // ---- Pausable controls (onlyOwner) ----
-    function pause() external onlyOwner {
+    function pause() external onlyPauserOrAdmin {
         _pause();
     }
 
-    function unpause() external onlyOwner {
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
     function decimals() public pure override returns (uint8) {
-        return 2; // smallest unit = 0.01 StableNaira (1 Kobo)
+        return DECIMALS;
     }
 
-    // ---- Internal transfer that bypasses frozen checks ----
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+
     function _forceTransfer(address from, address to, uint256 amount) internal {
-        // This bypasses the freeze logic in _update()
         super._update(from, to, amount);
     }
 
-    // ---- Transfer Hook with Freeze Enforcement ----
-    function _update(address from, address to, uint256 value)
-        internal
-        override
-        whenNotPaused
-    {
-        // Skip checks when minting or burning
-        if (from != address(0)) require(!frozen[from], "StableNaira: sender frozen");
-        if (to != address(0)) require(!frozen[to], "StableNaira: recipient frozen");
-
+    function _update(address from, address to, uint256 value) internal override whenNotPaused {
+        if (from != address(0)) {
+            if (frozen[from]) revert ERC20InvalidSender(from);
+        }
+        if (to != address(0)) {
+            if (frozen[to]) revert ERC20InvalidReceiver(to);
+        }
         super._update(from, to, value);
     }
-
 }
