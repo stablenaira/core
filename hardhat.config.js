@@ -17,6 +17,11 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 31337,
+      // The CCTP deployer bundles four implementation contracts (registry,
+      // transmitter, router, verifier) and exceeds the 24.5 KB EIP-170
+      // deploy-time limit locally. Override for tests only; production
+      // deploys split the factory into per-contract deployers.
+      allowUnlimitedContractSize: true,
     },
     testnet: {
       url: BSC_TESTNET_RPC,
