@@ -1,0 +1,39 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deployer": "0x39e67B9238B874f74233692454E2D04E9fC68363",
+  "stableNaira": {
+    "factory": "0x0aF0c5f608267C8F1dA693B4c64d05D57777427E",
+    "implementation": "0xB4f1fA5f73Cf32f5D2D0B4BfacE0C7116F38a5e1",
+    "proxy": "0x0399452971a6983a5Ae04D268899F91f14Dc9DB2"
+  },
+  "cctp": {
+    "factory": null,
+    "verifier": {
+      "implementation": "0x144D012B7D277CFD0ED9b9ab964B94DE9Faf5013",
+      "proxy": "0x50A55cCe3e926f7396702aB5A115699E885F14a5"
+    },
+    "registry": {
+      "implementation": "0xdfec73f534FC06708Fcd0ad7620C8737C44878d8",
+      "proxy": "0x5174D85d5992a9dB0A0a25A098B36588eE6fEa59"
+    },
+    "transmitter": {
+      "implementation": "0x9f8787AE4A57c0EaA9380Caae9fA604497E92525",
+      "proxy": "0xc34878a3649BC29c80c21C735b9211e6A75F860b"
+    },
+    "router": {
+      "implementation": "0xa65Eda0F9F5013B5Ae6194369BAf6E63D73D2216",
+      "proxy": "0xd62Aa0D78dba00e29C38b03f6b1aeE37b05c59FB"
+    }
+  },
+  "priceOracle": {
+    "address": "0xb69Ae25fd03559bf87131460c11046e93CD4B640",
+    "config": {
+      "decimals": 8,
+      "reporters": [
+        "0x39e67B9238B874f74233692454E2D04E9fC68363"
+      ],
+      "quorum": 1
+    }
+  }
+}

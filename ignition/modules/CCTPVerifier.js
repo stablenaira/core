@@ -9,7 +9,7 @@ module.exports = buildModule("CCTPVerifier", (m) => {
   const cofactor = m.getParameter("g2Cofactor");
   const dst = m.getParameter(
     "hashToCurveDst",
-    "0x424c535f5349475f424c53313233383147325f584d443a5348412d3235365f535357555f524f5f504f505f",
+    "0x535441424c454e414952415f434354505f424c53313233383147325f584d443a5348412d3235365f535357555f524f5f7631",
   );
 
   const factory = m.contract("StableNairaCCTPDeployer");

@@ -87,7 +87,7 @@ describe("BLS12381Verifier.expandMessageXmd parity", function () {
     await deployer.waitForDeployment();
 
     const dst = ethers.hexlify(
-      ethers.toUtf8Bytes("BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_"),
+      ethers.toUtf8Bytes("STABLENAIRA_CCTP_BLS12381G2_XMD:SHA-256_SSWU_RO_v1"),
     );
     const dummyCofactor = "0x01";
     const tx = await deployer.deployVerifier(admin.address, dummyCofactor, dst);
@@ -104,9 +104,7 @@ describe("BLS12381Verifier.expandMessageXmd parity", function () {
     verifier = await ethers.getContractAt("BLS12381Verifier", ev.args.proxy);
   });
 
-  const DST = new TextEncoder().encode(
-    "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_",
-  );
+  const DST = new TextEncoder().encode("STABLENAIRA_CCTP_BLS12381G2_XMD:SHA-256_SSWU_RO_v1");
 
   const cases = [
     { name: "empty message, 32 bytes out", msg: new Uint8Array(0), len: 32 },

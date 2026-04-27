@@ -33,10 +33,11 @@ contract ValidatorRegistry is
 {
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
-    uint256 public constant MIN_TIMELOCK = 1 hours;
+    uint256 public constant DEFAULT_MIN_TIMELOCK = 1 minutes;
     uint256 public constant MAX_TIMELOCK = 30 days;
 
     uint64 public timelock;
+    uint64 public minTimelock;
     uint256 public override currentEpoch;
     uint256 public override totalWeight;
     uint256 public override threshold;
@@ -62,7 +63,7 @@ contract ValidatorRegistry is
 
     PendingChange[] private _pending;
 
-    uint256[40] private __gap;
+    uint256[39] private __gap;
 
     error InvalidPublicKey();
     error InvalidIdentityAddress();
@@ -89,7 +90,10 @@ contract ValidatorRegistry is
         __UUPSUpgradeable_init();
 
         if (admin == address(0) || governor == address(0)) revert InvalidPublicKey();
-        if (initialTimelock < MIN_TIMELOCK || initialTimelock > MAX_TIMELOCK) revert TimelockOutOfRange();
+        minTimelock = uint64(DEFAULT_MIN_TIMELOCK);
+        if (initialTimelock < _effectiveMinTimelock() || initialTimelock > MAX_TIMELOCK) {
+            revert TimelockOutOfRange();
+        }
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(GOVERNOR_ROLE, governor);
@@ -247,8 +251,15 @@ contract ValidatorRegistry is
     }
 
     function setTimelock(uint64 newTimelock) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newTimelock < MIN_TIMELOCK || newTimelock > MAX_TIMELOCK) revert TimelockOutOfRange();
+        if (newTimelock < _effectiveMinTimelock() || newTimelock > MAX_TIMELOCK) {
+            revert TimelockOutOfRange();
+        }
         timelock = newTimelock;
+    }
+
+    function setMinTimelock(uint64 newMinTimelock) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newMinTimelock < 1 minutes || newMinTimelock > MAX_TIMELOCK) revert TimelockOutOfRange();
+        minTimelock = newMinTimelock;
     }
 
     // ---- Governance: commit ----
@@ -315,6 +326,11 @@ contract ValidatorRegistry is
         uint8 b = uint8(bitmap[byteIndex]);
         uint8 mask = uint8(1) << uint8(7 - (index % 8));
         return (b & mask) != 0;
+    }
+
+    function _effectiveMinTimelock() internal view returns (uint64) {
+        uint64 configured = minTimelock;
+        return configured == 0 ? uint64(DEFAULT_MIN_TIMELOCK) : configured;
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
