@@ -67,7 +67,7 @@ describe("MessageTransmitter → off-chain decode parity", function () {
     // here. Real deployments inject the RFC 9380 cofactor via Ignition params.
     const dummyCofactor = "0x01";
     const dummyDst = ethers.hexlify(
-      ethers.toUtf8Bytes("BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_"),
+      ethers.toUtf8Bytes("STABLENAIRA_CCTP_BLS12381G2_XMD:SHA-256_SSWU_RO_v1"),
     );
     const verifierTx = await deployer.deployVerifier(admin.address, dummyCofactor, dummyDst);
     const verifierReceipt = await verifierTx.wait();

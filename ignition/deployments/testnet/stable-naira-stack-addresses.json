@@ -1,0 +1,39 @@
+{
+  "network": "testnet",
+  "chainId": 97,
+  "deployer": "0x39e67B9238B874f74233692454E2D04E9fC68363",
+  "stableNaira": {
+    "factory": null,
+    "implementation": null,
+    "proxy": "0xfaE7C1AD37b7ad8848f840109332793bC5889563"
+  },
+  "cctp": {
+    "factory": null,
+    "verifier": {
+      "implementation": "0x9c3f6411d3344A26a9917C8eB5781bF16Cc0eC5F",
+      "proxy": "0x36eDb1040e0EC5E8AC46Bb99E786C5A4007E137A"
+    },
+    "registry": {
+      "implementation": "0x91A12daedcAE1A6401d88Fa4b7e9C570940516E4",
+      "proxy": "0xC78FaB69586cf216E2d617A6c2bc20E8A438Cd92"
+    },
+    "transmitter": {
+      "implementation": "0xE539a0cC3E6595D5cdF55d0cCC77a6930494342b",
+      "proxy": "0x1d90990f01b11DfFBe4d4Cf47b868fB939c5911A"
+    },
+    "router": {
+      "implementation": "0x19C3D587E29e9cddE71b8Cc924Ee68763c9660D4",
+      "proxy": "0x724AC0d83fa50652b107A07dbE32924ED3980523"
+    }
+  },
+  "priceOracle": {
+    "address": "0x34F8528Cd4fDD85437af307937cFEE72b63A5bA0",
+    "config": {
+      "decimals": 8,
+      "reporters": [
+        "0x39e67B9238B874f74233692454E2D04E9fC68363"
+      ],
+      "quorum": 1
+    }
+  }
+}

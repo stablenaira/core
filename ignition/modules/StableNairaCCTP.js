@@ -38,11 +38,10 @@ module.exports = buildModule("StableNairaCCTP", (m) => {
   // RFC 9380 §8.8.2 / the BLS12-381 standard before mainnet).
   const cofactor = m.getParameter("g2Cofactor");
 
-  // RFC 9380 suite ID for min-pk BLS signatures:
-  //   BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_
+  // Must match `BLS_DST` in cctp-network/packages/crypto/src/bls.ts (off-chain signing).
   const dst = m.getParameter(
     "hashToCurveDst",
-    "0x424c535f5349475f424c53313233383147325f584d443a5348412d3235365f535357555f524f5f504f505f", // "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_"
+    "0x535441424c454e414952415f434354505f424c53313233383147325f584d443a5348412d3235365f535357555f524f5f7631",
   );
 
   const factory = m.contract("StableNairaCCTPDeployer");

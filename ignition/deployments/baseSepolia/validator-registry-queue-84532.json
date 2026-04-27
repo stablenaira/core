@@ -1,0 +1,17 @@
+{
+  "network": "baseSepolia",
+  "chainId": 84532,
+  "queuedAt": "2026-04-24T17:55:12.047Z",
+  "registry": "0xb9427E763C3aDDE424d34eBf55711D63d3edb0B9",
+  "changes": [
+    {
+      "kind": "add",
+      "changeId": 4
+    },
+    {
+      "kind": "add",
+      "changeId": 5
+    }
+  ],
+  "lastCommitAttemptAt": "2026-04-24T17:55:13.295Z"
+}
