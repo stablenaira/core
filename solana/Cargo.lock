@@ -4374,6 +4374,7 @@ dependencies = [
  "anchor-lang",
  "libsecp256k1 0.7.2",
  "litesvm",
+ "solana-clock",
  "solana-instruction",
  "solana-keccak-hasher",
  "solana-keypair",

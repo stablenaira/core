@@ -170,21 +170,31 @@ fn multisig_verifier_golden_vector_parity() {
     h.verify(digest, attestation_for(&quorum, &digest))
         .expect("valid 3-of-5 quorum must be accepted");
 
-    // 2) owner-gated mutation: a non-owner cannot add a validator.
+    // 2) owner-gated mutation: a non-owner cannot queue a rotation.
     let stranger = Keypair::new();
     h.svm.airdrop(&stranger.pubkey(), 1_000_000_000).unwrap();
-    let bad_add = Instruction {
+    let pending = Pubkey::find_program_address(&[b"pending"], &pid()).0;
+    let bad_queue = Instruction {
         program_id: pid(),
         accounts: vec![
-            AccountMeta::new_readonly(stranger.pubkey(), true),
-            AccountMeta::new(registry_pda(), false),
+            AccountMeta::new_readonly(stranger.pubkey(), true), // not the owner
+            AccountMeta::new(stranger.pubkey(), true),          // payer
+            AccountMeta::new_readonly(registry_pda(), false),
+            AccountMeta::new(pending, false),
+            AccountMeta::new_readonly(SYSTEM, false),
         ],
-        data: validator_registry::instruction::AddValidator { validator: [9u8; 20] }.data(),
+        data: validator_registry::instruction::QueueChange {
+            kind: 0,
+            target: [9u8; 20],
+            replacement: [0u8; 20],
+            new_threshold: 0,
+        }
+        .data(),
     };
     let st = stranger.insecure_clone();
     assert!(
-        h.send(&[bad_add], &[&h.payer_kp(), &st]).is_err(),
-        "non-owner must not mutate the validator set"
+        h.send(&[bad_queue], &[&h.payer_kp(), &st]).is_err(),
+        "non-owner must not queue a validator-set change"
     );
 
     // 3) rejects not-strictly-ascending order, and duplicates.
