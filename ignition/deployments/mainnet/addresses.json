@@ -1,0 +1,61 @@
+{
+  "network": "mainnet",
+  "chainId": 56,
+  "domainId": 56,
+  "label": "BSC Mainnet",
+  "explorerUrl": "https://bscscan.com",
+  "deployer": "0x39e67B9238B874f74233692454E2D04E9fC68363",
+  "deployedAt": "2026-05-05T14:08:27.597Z",
+  "contracts": {
+    "stableNaira": "0x6B6f93a12705b6eB60490A8b8a9aC15b3B1ce0f2",
+    "stableNairaImpl": "0x2C30F1277c615130f36eE0F924CA8A127e24D63A",
+    "stableNairaDeployer": "0xC40259dA02D7e3676f11dF34f49555593dd8D321",
+    "validatorRegistry": "0xE5BEC830d7a7a084e24B9b76C249c39B752f12bD",
+    "validatorRegistryImpl": "0xDfA857983A7FD2dba072EC2c979F16Ea4eE34CFB",
+    "verifier": "0xf638F03DF5C1eE73A589Df2991660AE316d630c1",
+    "messageTransmitter": "0x29A1d43DdA8d81a63B788F7862a4E8c7182ef2B4",
+    "messageTransmitterImpl": "0x4990A63c156Da6c74aB04354366010080098bbd1",
+    "tokenMessenger": "0xbE1Ed9d08141d4c8331Ba30ECb64fF42F1512F31",
+    "tokenMessengerImpl": "0xAfE9BBCe49428EC10F833190cFdc19eB72A1B59F",
+    "priceOracle": "0xdDc26c8ced3Cea7D200A562210be636323A04B92"
+  },
+  "configuration": {
+    "tokenName": "StableNaira",
+    "tokenSymbol": "SNR",
+    "validators": [
+      "0x39e67B9238B874f74233692454E2D04E9fC68363"
+    ],
+    "threshold": 1,
+    "feeBps": 0,
+    "maxMessageBodySize": 4096,
+    "minterRoleGranted": true,
+    "oracle": {
+      "decimals": 8,
+      "reporters": [
+        "0x39e67B9238B874f74233692454E2D04E9fC68363"
+      ],
+      "quorum": 1
+    },
+    "_supersedes": "Earlier orphan deploy of BSC stack (StableNaira proxy 0xD250B10F28Bb0FE4A669F4cCb3F2e2B84FfF8e62) created during a Claude session before the user ran the canonical ceremony. The orphan contracts remain on chain but are not the official BSC deployment."
+  },
+  "remoteRouters": [
+    {
+      "domainId": 1,
+      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
+      "actionId": "1",
+      "status": "committed",
+      "queuedAt": "2026-05-05T14:17:50.000Z",
+      "eta": 1777994270,
+      "committedAt": "2026-05-05T15:19:25.000Z"
+    },
+    {
+      "domainId": 8453,
+      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
+      "actionId": "2",
+      "status": "committed",
+      "queuedAt": "2026-05-05T14:17:57.000Z",
+      "eta": 1777994277,
+      "committedAt": "2026-05-05T15:19:25.000Z"
+    }
+  ]
+}

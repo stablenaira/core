@@ -1,28 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.28;
 
-/**
- * @title IMessageHandler
- * @notice Destination-side receiver for CCTP messages. The BridgeRouter on
- *         the destination chain implements this. Any other contract that
- *         wants to receive cross-chain messages via this CCTP network must
- *         also implement it and be registered with the MessageTransmitter.
- */
+/// @title IMessageHandler
+/// @notice Implemented by any contract that wants to receive cross-chain
+///         messages from a `MessageTransmitter`. The transmitter calls
+///         `handleReceiveMessage` after the attestation is verified, the
+///         destination domain matches, and the nonce is fresh.
+///
+///         Returning `false` causes the entire `receiveMessage` transaction
+///         to revert — the nonce is **not** consumed and the message can be
+///         retried later. Same applies if the implementation reverts.
 interface IMessageHandler {
-    /**
-     * @notice Called by the MessageTransmitter after a message has been
-     *         successfully verified and replay-protected.
-     * @param sourceDomain The source domain id.
-     * @param sender       The sender on the source chain (bytes32).
-     * @param body         Opaque body payload. Handler is responsible for
-     *                     decoding and validating.
-     * @return success     Must return true on success. If false or if the
-     *                     call reverts, the MessageTransmitter reverts the
-     *                     entire receive call and the nonce is NOT consumed.
-     */
     function handleReceiveMessage(
         uint32 sourceDomain,
         bytes32 sender,
-        bytes calldata body
+        bytes calldata messageBody
     ) external returns (bool success);
 }

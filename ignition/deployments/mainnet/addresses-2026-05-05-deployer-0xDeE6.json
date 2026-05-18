@@ -1,0 +1,60 @@
+{
+  "network": "mainnet",
+  "chainId": 56,
+  "domainId": 56,
+  "label": "BSC Mainnet",
+  "explorerUrl": "https://bscscan.com",
+  "deployer": "0xDeE610DEDc652aa0A8EB9d70EB415d9400fCF387",
+  "deployedAt": "2026-05-05T12:33:21.188Z",
+  "contracts": {
+    "stableNaira": "0x966A083812d1edA066D192FC62410D51c761E2Ac",
+    "stableNairaImpl": "0xf682c0b3731d6e5EE367bB8bFb690845756119a6",
+    "stableNairaDeployer": "0x9a41ED6a8Ab499f23b5aABDC85306A54f0285ebE",
+    "validatorRegistry": "0x7CDa575cfa11DBc97cA2dEFf5525a361f0B9e1bf",
+    "validatorRegistryImpl": "0x72F937aDC84EDaB6b50BfC3DB116ED6f3f0E5F32",
+    "verifier": "0x88b8e2e44721000742F100a4a830361C0ADf33A5",
+    "messageTransmitter": "0x8DfB3fa99D5A5B6E5bF4EC3E524cC9702f2E4883",
+    "messageTransmitterImpl": "0x9e4F94C30D28660022f0eEb56F7cC701C5beA956",
+    "tokenMessenger": "0xc99a4e96105CD2A3048059e9106efa5b892aB8F3",
+    "tokenMessengerImpl": "0xA7cD3671CAF6AccF1cb6E6D409E1D111F1a1ACE4",
+    "priceOracle": "0x677c2cF2c0fC9a7B39026468884aeeC1c876aF28"
+  },
+  "configuration": {
+    "tokenName": "StableNaira",
+    "tokenSymbol": "SNR",
+    "validators": [
+      "0xDeE610DEDc652aa0A8EB9d70EB415d9400fCF387"
+    ],
+    "threshold": 1,
+    "feeBps": 0,
+    "maxMessageBodySize": 4096,
+    "minterRoleGranted": true,
+    "oracle": {
+      "decimals": 8,
+      "reporters": [
+        "0xDeE610DEDc652aa0A8EB9d70EB415d9400fCF387"
+      ],
+      "quorum": 1
+    }
+  },
+  "remoteRouters": [
+    {
+      "domainId": 1,
+      "router": "0x000000000000000000000000935568a95371caf3c8baa4ace0873d7821802a39",
+      "actionId": "1",
+      "status": "committed",
+      "queuedAt": "2026-05-05T12:42:22.922Z",
+      "eta": 1777988538,
+      "committedAt": "2026-05-05T13:44:38.929Z"
+    },
+    {
+      "domainId": 8453,
+      "router": "0x000000000000000000000000f1e6879661a6e44eeecc6951c795d11abdf6b98f",
+      "actionId": "2",
+      "status": "committed",
+      "queuedAt": "2026-05-05T12:42:25.932Z",
+      "eta": 1777988545,
+      "committedAt": "2026-05-05T13:44:45.967Z"
+    }
+  ]
+}

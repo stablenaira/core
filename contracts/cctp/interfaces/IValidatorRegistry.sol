@@ -1,66 +1,62 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.28;
 
-/**
- * @title IValidatorRegistry
- * @notice Registry of active CCTP validators and their BLS public keys.
- *
- * Validators have:
- *  - A 48-byte compressed G1 BLS public key
- *  - A weight (uint256; unit-weighted by default, but prepared for stake-weighted)
- *  - An active flag per epoch
- *
- * The registry advances in **epochs**. Mutations (add/remove/rotate) are
- * queued and take effect only after the timelock expires. Callers that rely
- * on validator identity (notably the MessageTransmitter) read only committed
- * epoch data.
- */
+/// @title IValidatorRegistry
+/// @notice External surface of the m-of-n validator set used by the active
+///         `ISignatureVerifier`. Owner-authorized mutations to the validator
+///         set, the threshold, AND the contract's UUPS upgrade pass through
+///         the `TimelockedUpgradeable` queue/commit gate (1-hour minimum).
 interface IValidatorRegistry {
-    struct Validator {
-        bytes publicKey;          // 128 bytes, uncompressed G1 (x || y, each 64-byte left-padded Fp)
-        uint256 weight;
-        bool active;
-        /**
-         * EVM address holding the validator's off-chain identity key.
-         * Used by the aggregator to authenticate signature submissions
-         * (EIP-191 personal_sign over the submission payload). This key
-         * is NOT used for any on-chain action and can be rotated quickly
-         * without impacting BLS attestations.
-         */
-        address identityAddress;
+    /// @notice Kinds of pending validator changes. Encoded into `ChangeQueued`
+    ///         so off-chain indexers can decode without ABI guesswork.
+    enum ChangeKind {
+        AddValidator,
+        RemoveValidator,
+        ReplaceValidator,
+        SetThreshold
     }
 
-    event ValidatorQueued(uint256 indexed changeId, bytes publicKey, uint256 weight, uint64 effectiveAt);
-    event ValidatorCommitted(uint256 indexed changeId, bytes publicKey, uint256 weight, address identityAddress);
-    event ValidatorRemoved(bytes publicKey);
-    event IdentityAddressUpdated(bytes publicKey, address oldAddress, address newAddress);
-    event ThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
-    event EpochAdvanced(uint256 indexed newEpoch, uint256 totalWeight);
+    /* --------------- typed events (in addition to mixin's ActionQueued/Committed/Cancelled) ---------------- */
 
-    /// @notice Current epoch id. Increments whenever committed changes are applied.
-    function currentEpoch() external view returns (uint256);
+    /// @notice Emitted on each effective add (after `commit` or at init).
+    event ValidatorAdded(address indexed validator);
+    /// @notice Emitted on each effective remove (after `commit`).
+    event ValidatorRemoved(address indexed validator);
+    /// @notice Emitted on each effective threshold change (after `commit` or at init).
+    event ThresholdUpdated(uint256 previous, uint256 current);
 
-    /// @notice Sum of weights of all active validators in the current epoch.
-    function totalWeight() external view returns (uint256);
+    /// @notice Emitted alongside the mixin's `ActionQueued` for validator
+    ///         changes. Carries typed details so a backend can render the
+    ///         pending UI without a follow-up view call.
+    event ChangeQueued(
+        uint256 indexed actionId,
+        ChangeKind kind,
+        uint64 eta,
+        address target,
+        address replacement,
+        uint256 newThreshold
+    );
+    /// @notice Emitted on successful `commitValidatorChange`. Mixin's
+    ///         `ActionCommitted` is also emitted with the action hash.
+    event ChangeCommitted(uint256 indexed actionId);
+    /// @notice Emitted when the owner cancels a queued change. Mixin's
+    ///         `ActionCancelled` is also emitted.
+    event ChangeCancelled(uint256 indexed actionId);
 
-    /// @notice Minimum aggregated signer weight required to accept a message.
-    function threshold() external view returns (uint256);
+    /* ------------------------------ errors ----------------------------- */
 
-    /// @notice Number of validator slots (bitmap width) in the current epoch.
+    /// @notice The post-state would have an invalid threshold.
+    error InvalidThreshold(uint256 threshold, uint256 validatorCount);
+    error ValidatorAlreadyExists(address validator);
+    error ValidatorNotFound(address validator);
+    error ZeroAddressValidator();
+
+    /* ------------------------------ views ------------------------------ */
+
+    function isValidator(
+        address account
+    ) external view returns (bool);
+    function validators() external view returns (address[] memory);
     function validatorCount() external view returns (uint256);
-
-    /// @notice Return the validator at a bitmap index in the current epoch.
-    function validatorAt(uint256 index) external view returns (Validator memory);
-
-    /// @notice True iff `publicKey` is an active validator in the current epoch.
-    function isActive(bytes calldata publicKey) external view returns (bool);
-
-    /// @notice Given a signer bitmap (1 bit per validator slot), return the
-    ///         sum of signer weights and the list of selected public keys
-    ///         in ascending index order. Reverts if any bit refers to an
-    ///         inactive or out-of-range slot.
-    function resolveBitmap(bytes calldata signerBitmap)
-        external
-        view
-        returns (uint256 weight, bytes[] memory publicKeys);
+    function threshold() external view returns (uint256);
 }

@@ -1,0 +1,52 @@
+{
+  "network": "base",
+  "chainId": 8453,
+  "domainId": 8453,
+  "label": "Base Mainnet",
+  "explorerUrl": "https://basescan.org",
+  "deployer": "0xDeE610DEDc652aa0A8EB9d70EB415d9400fCF387",
+  "deployedAt": "2026-05-05T12:37:01.060Z",
+  "contracts": {
+    "stableNaira": "0xDcF0c4F932E05C2b14F55537800C3bBC14efC31d",
+    "stableNairaImpl": "0xe0591a0932F29201000531E5D6E110ac45C3C115",
+    "stableNairaDeployer": "0xBaC48Edc12c2035be989D4EcAaa80dadcBD394c0",
+    "validatorRegistry": "0x920F0eEcE6Bb6ed522Cb1e9a11BcdBe019262285",
+    "validatorRegistryImpl": "0xE3a1b533239bb27EEB06c134BD951c0095fe473B",
+    "verifier": "0x0478b95563eC01F332005Bc90e7cC1B070DA8BfF",
+    "messageTransmitter": "0x8a5B6FdEe3FD76e7083367360916EF56F45Ed59f",
+    "messageTransmitterImpl": "0xc6af58BfA7df50647fd00b4d1204D6Dec2a647DA",
+    "tokenMessenger": "0xf1E6879661A6E44EEecC6951c795d11Abdf6b98F",
+    "tokenMessengerImpl": "0x23499CD3348792B4E307d23D2c9603D55e42CB19"
+  },
+  "configuration": {
+    "tokenName": "StableNaira",
+    "tokenSymbol": "SNR",
+    "validators": [
+      "0xDeE610DEDc652aa0A8EB9d70EB415d9400fCF387"
+    ],
+    "threshold": 1,
+    "feeBps": 0,
+    "maxMessageBodySize": 4096,
+    "minterRoleGranted": true
+  },
+  "remoteRouters": [
+    {
+      "domainId": 56,
+      "router": "0x000000000000000000000000c99a4e96105cd2a3048059e9106efa5b892ab8f3",
+      "actionId": "1",
+      "status": "committed",
+      "queuedAt": "2026-05-05T12:43:19.840Z",
+      "eta": 1777988601,
+      "committedAt": "2026-05-05T13:45:17.461Z"
+    },
+    {
+      "domainId": 1,
+      "router": "0x000000000000000000000000935568a95371caf3c8baa4ace0873d7821802a39",
+      "actionId": "2",
+      "status": "committed",
+      "queuedAt": "2026-05-05T12:43:31.660Z",
+      "eta": 1777988609,
+      "committedAt": "2026-05-05T13:45:24.261Z"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "domainId": 11155111,
+  "label": "Ethereum Sepolia",
+  "explorerUrl": "https://sepolia.etherscan.io",
+  "deployer": "0x39e67B9238B874f74233692454E2D04E9fC68363",
+  "deployedAt": "2026-05-05T07:59:49.206Z",
+  "contracts": {
+    "stableNaira": "0xb7dbA7742848ae6A8d443E674d8Da5187Ef1b70e",
+    "stableNairaImpl": "0x0Ad5b62C2368aB4cc7DF64Cf8ADf23f59FbBf169",
+    "stableNairaDeployer": "0x215B58A8704C241599245291D49b64d12F3c8A3C",
+    "validatorRegistry": "0x1CDbEb794F9f7D189b593263D122B524A04DFFE1",
+    "validatorRegistryImpl": "0xAe7b546A3869B448E6ADDec27Db1486CC83418D9",
+    "verifier": "0x334ACb9823138EfcDaB0143734242c9e7e5f2e8c",
+    "messageTransmitter": "0x2519605455cda08DeBf597d2dc4cF7e0f8bCCf1e",
+    "messageTransmitterImpl": "0xf86b4Cae366fcEdF1c88Db4C5e2EE417eB8eC5Be",
+    "tokenMessenger": "0x659d44adD4eBA432273ace3A26Ec9e18783AEb69",
+    "tokenMessengerImpl": "0x41175494b469EcD745B976704cfBbA215d13E48e"
+  },
+  "configuration": {
+    "tokenName": "StableNaira",
+    "tokenSymbol": "SNR",
+    "validators": [
+      "0x39e67B9238B874f74233692454E2D04E9fC68363"
+    ],
+    "threshold": 1,
+    "feeBps": 0,
+    "maxMessageBodySize": 4096,
+    "minterRoleGranted": true
+  },
+  "remoteRouters": [
+    {
+      "domainId": 97,
+      "router": "0x0000000000000000000000000bf49f518f9b0f2072ac240a08408533ec745f71",
+      "actionId": "1",
+      "status": "committed",
+      "queuedAt": "2026-05-05T08:08:38.425Z",
+      "eta": 1777972116,
+      "committedAt": "2026-05-05T09:10:25.957Z"
+    },
+    {
+      "domainId": 84532,
+      "router": "0x000000000000000000000000ac12ca07fea1198b9e0e194e4ebbf9fa2b940ce8",
+      "actionId": "2",
+      "status": "committed",
+      "queuedAt": "2026-05-05T08:08:49.304Z",
+      "eta": 1777972128,
+      "committedAt": "2026-05-05T09:11:02.483Z"
+    }
+  ]
+}

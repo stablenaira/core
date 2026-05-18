@@ -1,337 +1,314 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.28;
 
-import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IValidatorRegistry} from "./interfaces/IValidatorRegistry.sol";
+import { TimelockedUpgradeable } from "./utils/TimelockedUpgradeable.sol";
+import { IValidatorRegistry } from "./interfaces/IValidatorRegistry.sol";
 
-/**
- * @title ValidatorRegistry
- * @notice Timelocked registry of active CCTP validators and their BLS public keys.
- *
- * Design
- * ------
- * - Validators hold a slot index in the current epoch (used as the bit
- *   position in attestation bitmaps).
- * - Mutations are queued with `queueAdd`, `queueRemove`, `queueUpdateWeight`
- *   and committed after `timelock` seconds via `commit`.
- * - A committed change advances the epoch. Attesters MUST re-sync on epoch
- *   advance; in-flight proofs signed under the previous epoch remain valid
- *   only if accepted before the epoch bumps (MessageTransmitter reads epoch
- *   snapshot at receive time).
- *
- * Storage layout is append-only; reserved `__gap` at the end to allow safe
- * UUPS upgrades.
- */
+/// @title ValidatorRegistry
+/// @notice m-of-n validator set with on-chain rotation guarded by a timelock.
+///         Verifiers (e.g. `MultisigVerifier`) read `threshold()` and
+///         `isValidator(addr)` on every signature check.
+///
+///         All sensitive admin operations on this contract — validator-set
+///         changes, threshold changes, AND UUPS upgrades — pass through the
+///         shared `TimelockedUpgradeable` queue/commit gate. The owner can
+///         queue and cancel; any caller can commit after `eta`.
+///
+///         Threshold invariant (enforced at `commit` and `init`):
+///           1. `threshold >= 1`
+///           2. `threshold <= validatorCount`
+///           3. `2 * threshold > validatorCount` (strictly more than half)
+///         If a queued removal would violate the invariant, queue (and commit)
+///         a `setThreshold` change first.
 contract ValidatorRegistry is
-    Initializable,
-    AccessControlEnumerableUpgradeable,
+    TimelockedUpgradeable,
     UUPSUpgradeable,
+    Ownable2StepUpgradeable,
     IValidatorRegistry
 {
-    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public constant DEFAULT_MIN_TIMELOCK = 1 minutes;
-    uint256 public constant MAX_TIMELOCK = 30 days;
-
-    uint64 public timelock;
-    uint64 public minTimelock;
-    uint256 public override currentEpoch;
-    uint256 public override totalWeight;
-    uint256 public override threshold;
-
-    /// @dev 1-indexed lookup (0 = "not present"), keyed by keccak256(publicKey).
-    mapping(bytes32 => uint256) private _indexPlusOne;
-
-    /// @dev Dense validator slots used in the current epoch.
-    Validator[] private _validators;
-
-    enum ChangeKind { Add, Remove, UpdateWeight, UpdateThreshold, UpdateIdentity }
-
-    struct PendingChange {
+    /// @dev Per-kind details for a queued validator change. `actionId` from
+    ///      the mixin keys into this map. The mixin separately stores the
+    ///      `actionHash` and `eta`; on commit we re-derive the hash from the
+    ///      typed details and let the mixin verify the match.
+    struct ValidatorChange {
         ChangeKind kind;
-        bytes publicKey;
-        uint256 weight;
+        address target;
+        address replacement;
         uint256 newThreshold;
-        address identityAddress;
-        uint64 effectiveAt;
-        bool committed;
-        bool cancelled;
     }
 
-    PendingChange[] private _pending;
+    /// @dev Domain separators for action hashes — guarantees that, for
+    ///      example, an `AddValidator` queued action cannot be committed by
+    ///      a `RemoveValidator` commit call (they hash different blobs).
+    bytes32 private constant DOMAIN_VALIDATOR_CHANGE = keccak256("ValidatorRegistry.ValidatorChange.v1");
+    bytes32 private constant DOMAIN_UPGRADE = keccak256("ValidatorRegistry.Upgrade.v1");
 
-    uint256[39] private __gap;
+    EnumerableSet.AddressSet private _validators;
 
-    error InvalidPublicKey();
-    error InvalidIdentityAddress();
-    error ValidatorAlreadyActive();
-    error ValidatorNotActive();
-    error ChangeNotReady();
-    error ChangeAlreadyApplied();
-    error ThresholdOutOfRange();
-    error TimelockOutOfRange();
-    error BitmapOutOfRange();
+    /// @inheritdoc IValidatorRegistry
+    uint256 public override threshold;
+
+    /// @dev Action id → typed details. Lets us emit rich events on commit
+    ///      and inspect pending changes by id.
+    mapping(uint256 => ValidatorChange) private _changes;
+
+    /// @dev Set transiently by `commitUpgrade` to authorize a single call
+    ///      into `_authorizeUpgrade`. Cleared after the upgrade completes.
+    address private _authorizedImpl;
+
+    /// @dev Storage gap. 50 - 4 used = 46.
+    uint256[46] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
+    /// @notice Initialize the registry.
+    /// @param initialValidators  Set of validator addresses.
+    /// @param initialThreshold   Quorum (must satisfy threshold invariant).
+    /// @param owner_             Initial owner.
+    /// @param initialTimelock    Active queue→commit delay. `0` → 1 hour default.
+    /// @param initialMinTimelock Floor on `timelock`. `0` → 1 hour default.
     function initialize(
-        address admin,
-        address governor,
-        uint64 initialTimelock,
-        uint256 initialThreshold
-    ) public initializer {
-        __AccessControlEnumerable_init();
-        __UUPSUpgradeable_init();
+        address[] calldata initialValidators,
+        uint256 initialThreshold,
+        address owner_,
+        uint256 initialTimelock,
+        uint256 initialMinTimelock
+    ) external initializer {
+        __Ownable_init(owner_);
+        __Timelocked_init(initialTimelock, initialMinTimelock);
 
-        if (admin == address(0) || governor == address(0)) revert InvalidPublicKey();
-        minTimelock = uint64(DEFAULT_MIN_TIMELOCK);
-        if (initialTimelock < _effectiveMinTimelock() || initialTimelock > MAX_TIMELOCK) {
-            revert TimelockOutOfRange();
+        for (uint256 i = 0; i < initialValidators.length; i++) {
+            _addValidator(initialValidators[i]);
         }
-
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(GOVERNOR_ROLE, governor);
-
-        timelock = initialTimelock;
-        threshold = initialThreshold;
-        currentEpoch = 1;
+        _setThreshold(initialThreshold);
     }
 
-    // ---- View ----
+    /* ------------------------ queue: validator changes ------------------------ */
 
-    function validatorCount() external view returns (uint256) {
-        return _validators.length;
+    function queueAddValidator(
+        address validator
+    ) external onlyOwner returns (uint256 actionId) {
+        if (validator == address(0)) revert ZeroAddressValidator();
+        if (_validators.contains(validator)) revert ValidatorAlreadyExists(validator);
+        return _queueValidatorChange(
+            ValidatorChange(ChangeKind.AddValidator, validator, address(0), 0)
+        );
     }
 
-    function validatorAt(uint256 index) external view returns (Validator memory) {
-        return _validators[index];
+    function queueRemoveValidator(
+        address validator
+    ) external onlyOwner returns (uint256 actionId) {
+        if (!_validators.contains(validator)) revert ValidatorNotFound(validator);
+        return _queueValidatorChange(
+            ValidatorChange(ChangeKind.RemoveValidator, validator, address(0), 0)
+        );
     }
 
-    function isActive(bytes calldata publicKey) external view returns (bool) {
-        uint256 idx = _indexPlusOne[keccak256(publicKey)];
-        if (idx == 0) return false;
-        return _validators[idx - 1].active;
+    function queueReplaceValidator(
+        address oldValidator,
+        address newValidator
+    ) external onlyOwner returns (uint256 actionId) {
+        if (newValidator == address(0)) revert ZeroAddressValidator();
+        if (!_validators.contains(oldValidator)) revert ValidatorNotFound(oldValidator);
+        if (_validators.contains(newValidator)) revert ValidatorAlreadyExists(newValidator);
+        return _queueValidatorChange(
+            ValidatorChange(ChangeKind.ReplaceValidator, oldValidator, newValidator, 0)
+        );
     }
 
-    function resolveBitmap(bytes calldata signerBitmap)
-        external
-        view
-        returns (uint256 weight, bytes[] memory publicKeys)
-    {
-        uint256 n = _validators.length;
-        uint256 maxBits = signerBitmap.length * 8;
-        // Count set bits first so we can size the return array exactly.
-        uint256 setBits;
-        for (uint256 i = 0; i < n; i++) {
-            if (_isBitSet(signerBitmap, i)) setBits++;
-        }
-        // Any bit set beyond validator count is invalid.
-        for (uint256 i = n; i < maxBits; i++) {
-            if (_isBitSet(signerBitmap, i)) revert BitmapOutOfRange();
-        }
-
-        publicKeys = new bytes[](setBits);
-        uint256 cursor;
-        for (uint256 i = 0; i < n; i++) {
-            if (!_isBitSet(signerBitmap, i)) continue;
-            Validator storage v = _validators[i];
-            if (!v.active) revert ValidatorNotActive();
-            publicKeys[cursor++] = v.publicKey;
-            weight += v.weight;
-        }
+    function queueSetThreshold(
+        uint256 newThreshold
+    ) external onlyOwner returns (uint256 actionId) {
+        // Threshold invariant is checked at commit time on the post-state.
+        return _queueValidatorChange(
+            ValidatorChange(ChangeKind.SetThreshold, address(0), address(0), newThreshold)
+        );
     }
 
-    // ---- Governance: queue changes ----
+    /* ------------------------ commit: validator changes ----------------------- */
 
-    function queueAdd(bytes calldata publicKey, uint256 weight, address identityAddress)
-        external
-        onlyRole(GOVERNOR_ROLE)
-        returns (uint256 changeId)
-    {
-        if (publicKey.length != 128) revert InvalidPublicKey();
-        if (identityAddress == address(0)) revert InvalidIdentityAddress();
-        if (_indexPlusOne[keccak256(publicKey)] != 0) revert ValidatorAlreadyActive();
-        changeId = _queue(PendingChange({
-            kind: ChangeKind.Add,
-            publicKey: publicKey,
-            weight: weight,
-            newThreshold: 0,
-            identityAddress: identityAddress,
-            effectiveAt: uint64(block.timestamp) + timelock,
-            committed: false,
-            cancelled: false
-        }));
-    }
+    /// @notice Permissionless commit of a previously-queued validator change.
+    function commitValidatorChange(
+        uint256 actionId
+    ) external {
+        ValidatorChange memory c = _changes[actionId];
+        // Verify timing & hash match; mixin reverts on missing/early/mismatch.
+        _consumeAction(actionId, _hashValidatorChange(c));
+        delete _changes[actionId];
 
-    function queueRemove(bytes calldata publicKey)
-        external
-        onlyRole(GOVERNOR_ROLE)
-        returns (uint256 changeId)
-    {
-        uint256 idx = _indexPlusOne[keccak256(publicKey)];
-        if (idx == 0) revert ValidatorNotActive();
-        changeId = _queue(PendingChange({
-            kind: ChangeKind.Remove,
-            publicKey: publicKey,
-            weight: 0,
-            newThreshold: 0,
-            identityAddress: address(0),
-            effectiveAt: uint64(block.timestamp) + timelock,
-            committed: false,
-            cancelled: false
-        }));
-    }
-
-    function queueUpdateWeight(bytes calldata publicKey, uint256 newWeight)
-        external
-        onlyRole(GOVERNOR_ROLE)
-        returns (uint256 changeId)
-    {
-        uint256 idx = _indexPlusOne[keccak256(publicKey)];
-        if (idx == 0) revert ValidatorNotActive();
-        changeId = _queue(PendingChange({
-            kind: ChangeKind.UpdateWeight,
-            publicKey: publicKey,
-            weight: newWeight,
-            newThreshold: 0,
-            identityAddress: address(0),
-            effectiveAt: uint64(block.timestamp) + timelock,
-            committed: false,
-            cancelled: false
-        }));
-    }
-
-    function queueUpdateIdentity(bytes calldata publicKey, address newIdentityAddress)
-        external
-        onlyRole(GOVERNOR_ROLE)
-        returns (uint256 changeId)
-    {
-        uint256 idx = _indexPlusOne[keccak256(publicKey)];
-        if (idx == 0) revert ValidatorNotActive();
-        if (newIdentityAddress == address(0)) revert InvalidIdentityAddress();
-        changeId = _queue(PendingChange({
-            kind: ChangeKind.UpdateIdentity,
-            publicKey: publicKey,
-            weight: 0,
-            newThreshold: 0,
-            identityAddress: newIdentityAddress,
-            effectiveAt: uint64(block.timestamp) + timelock,
-            committed: false,
-            cancelled: false
-        }));
-    }
-
-    function queueSetThreshold(uint256 newThreshold)
-        external
-        onlyRole(GOVERNOR_ROLE)
-        returns (uint256 changeId)
-    {
-        changeId = _queue(PendingChange({
-            kind: ChangeKind.UpdateThreshold,
-            publicKey: "",
-            weight: 0,
-            newThreshold: newThreshold,
-            identityAddress: address(0),
-            effectiveAt: uint64(block.timestamp) + timelock,
-            committed: false,
-            cancelled: false
-        }));
-    }
-
-    function cancelChange(uint256 changeId) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        PendingChange storage c = _pending[changeId];
-        if (c.committed || c.cancelled) revert ChangeAlreadyApplied();
-        c.cancelled = true;
-    }
-
-    function setTimelock(uint64 newTimelock) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newTimelock < _effectiveMinTimelock() || newTimelock > MAX_TIMELOCK) {
-            revert TimelockOutOfRange();
-        }
-        timelock = newTimelock;
-    }
-
-    function setMinTimelock(uint64 newMinTimelock) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newMinTimelock < 1 minutes || newMinTimelock > MAX_TIMELOCK) revert TimelockOutOfRange();
-        minTimelock = newMinTimelock;
-    }
-
-    // ---- Governance: commit ----
-
-    function commit(uint256 changeId) external {
-        PendingChange storage c = _pending[changeId];
-        if (c.committed || c.cancelled) revert ChangeAlreadyApplied();
-        if (block.timestamp < c.effectiveAt) revert ChangeNotReady();
-
-        if (c.kind == ChangeKind.Add) {
-            _validators.push(Validator({
-                publicKey: c.publicKey,
-                weight: c.weight,
-                active: true,
-                identityAddress: c.identityAddress
-            }));
-            _indexPlusOne[keccak256(c.publicKey)] = _validators.length;
-            totalWeight += c.weight;
-            emit ValidatorCommitted(changeId, c.publicKey, c.weight, c.identityAddress);
-        } else if (c.kind == ChangeKind.Remove) {
-            uint256 idx = _indexPlusOne[keccak256(c.publicKey)] - 1;
-            Validator storage v = _validators[idx];
-            totalWeight -= v.weight;
-            v.active = false;
-            v.weight = 0;
-            v.identityAddress = address(0);
-            delete _indexPlusOne[keccak256(c.publicKey)];
-            emit ValidatorRemoved(c.publicKey);
-        } else if (c.kind == ChangeKind.UpdateWeight) {
-            uint256 idx = _indexPlusOne[keccak256(c.publicKey)] - 1;
-            Validator storage v = _validators[idx];
-            totalWeight = totalWeight - v.weight + c.weight;
-            v.weight = c.weight;
-            emit ValidatorCommitted(changeId, c.publicKey, c.weight, v.identityAddress);
-        } else if (c.kind == ChangeKind.UpdateIdentity) {
-            uint256 idx = _indexPlusOne[keccak256(c.publicKey)] - 1;
-            Validator storage v = _validators[idx];
-            address old = v.identityAddress;
-            v.identityAddress = c.identityAddress;
-            emit IdentityAddressUpdated(c.publicKey, old, c.identityAddress);
+        if (c.kind == ChangeKind.AddValidator) {
+            _addValidator(c.target);
+        } else if (c.kind == ChangeKind.RemoveValidator) {
+            _removeValidator(c.target);
+            _validateThreshold(threshold);
+        } else if (c.kind == ChangeKind.ReplaceValidator) {
+            _removeValidator(c.target);
+            _addValidator(c.replacement);
         } else {
-            if (c.newThreshold > totalWeight && totalWeight != 0) revert ThresholdOutOfRange();
-            uint256 old = threshold;
-            threshold = c.newThreshold;
-            emit ThresholdUpdated(old, c.newThreshold);
+            _setThreshold(c.newThreshold);
         }
-
-        c.committed = true;
-        currentEpoch += 1;
-        emit EpochAdvanced(currentEpoch, totalWeight);
+        emit ChangeCommitted(actionId);
     }
 
-    // ---- Internal ----
+    /* ------------------------ queue/commit: upgrades ------------------- */
 
-    function _queue(PendingChange memory change) internal returns (uint256 id) {
-        id = _pending.length;
-        _pending.push(change);
-        emit ValidatorQueued(id, change.publicKey, change.weight, change.effectiveAt);
+    /// @notice Queue a UUPS upgrade. The exact `(newImpl, data)` pair is
+    ///         hash-bound; callers MUST pass identical args to `commitUpgrade`.
+    function queueUpgrade(
+        address newImpl,
+        bytes calldata data
+    ) external onlyOwner returns (uint256 actionId) {
+        if (newImpl == address(0)) revert ZeroImpl();
+        actionId = _queueAction(_hashUpgrade(newImpl, data));
+        emit UpgradeQueued(actionId, newImpl);
     }
 
-    function _isBitSet(bytes calldata bitmap, uint256 index) internal pure returns (bool) {
-        uint256 byteIndex = index / 8;
-        if (byteIndex >= bitmap.length) return false;
-        uint8 b = uint8(bitmap[byteIndex]);
-        uint8 mask = uint8(1) << uint8(7 - (index % 8));
-        return (b & mask) != 0;
+    /// @notice Commit a previously queued upgrade. Permissionless after `eta`.
+    function commitUpgrade(uint256 actionId, address newImpl, bytes calldata data) external {
+        _consumeAction(actionId, _hashUpgrade(newImpl, data));
+        _authorizedImpl = newImpl;
+        // Calls back into `_authorizeUpgrade(newImpl)` which checks the flag.
+        upgradeToAndCall(newImpl, data);
+        delete _authorizedImpl;
+        emit UpgradeCommitted(actionId, newImpl);
     }
 
-    function _effectiveMinTimelock() internal view returns (uint64) {
-        uint64 configured = minTimelock;
-        return configured == 0 ? uint64(DEFAULT_MIN_TIMELOCK) : configured;
+    /* ----------------------------- cancel ----------------------------- */
+
+    /// @notice Cancel any queued action (validator change or upgrade).
+    ///         Permissioned to owner; clears both mixin and typed bookkeeping.
+    function cancel(
+        uint256 actionId
+    ) external onlyOwner {
+        // Safe: deleting an unset entry is a no-op.
+        delete _changes[actionId];
+        _cancelAction(actionId);
+        emit ChangeCancelled(actionId);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    /* ----------------------- timelock parameter setters ----------------------- */
+
+    function setMinTimelock(
+        uint256 newMin
+    ) external onlyOwner {
+        _setMinTimelock(newMin);
+    }
+
+    function setTimelock(
+        uint256 newTl
+    ) external onlyOwner {
+        _setTimelock(newTl);
+    }
+
+    /* --------------------------------- views ---------------------------------- */
+
+    /// @inheritdoc IValidatorRegistry
+    function isValidator(
+        address account
+    ) external view override returns (bool) {
+        return _validators.contains(account);
+    }
+
+    /// @inheritdoc IValidatorRegistry
+    function validators() external view override returns (address[] memory) {
+        return _validators.values();
+    }
+
+    /// @inheritdoc IValidatorRegistry
+    function validatorCount() external view override returns (uint256) {
+        return _validators.length();
+    }
+
+    /// @notice Inspect the typed details of a queued validator change.
+    function pendingValidatorChange(
+        uint256 actionId
+    ) external view returns (ValidatorChange memory) {
+        return _changes[actionId];
+    }
+
+    /* ------------------------------- internals -------------------------------- */
+
+    function _queueValidatorChange(
+        ValidatorChange memory c
+    ) private returns (uint256 actionId) {
+        bytes32 h = _hashValidatorChange(c);
+        actionId = _queueAction(h);
+        _changes[actionId] = c;
+        emit ChangeQueued(
+            actionId,
+            c.kind,
+            uint64(block.timestamp + timelock),
+            c.target,
+            c.replacement,
+            c.newThreshold
+        );
+    }
+
+    function _hashValidatorChange(
+        ValidatorChange memory c
+    ) private pure returns (bytes32) {
+        return keccak256(
+            abi.encode(DOMAIN_VALIDATOR_CHANGE, c.kind, c.target, c.replacement, c.newThreshold)
+        );
+    }
+
+    function _hashUpgrade(address newImpl, bytes calldata data) private pure returns (bytes32) {
+        return keccak256(abi.encode(DOMAIN_UPGRADE, newImpl, keccak256(data)));
+    }
+
+    function _addValidator(
+        address validator
+    ) private {
+        if (validator == address(0)) revert ZeroAddressValidator();
+        if (!_validators.add(validator)) revert ValidatorAlreadyExists(validator);
+        emit ValidatorAdded(validator);
+    }
+
+    function _removeValidator(
+        address validator
+    ) private {
+        if (!_validators.remove(validator)) revert ValidatorNotFound(validator);
+        emit ValidatorRemoved(validator);
+    }
+
+    function _setThreshold(
+        uint256 newThreshold
+    ) private {
+        _validateThreshold(newThreshold);
+        emit ThresholdUpdated(threshold, newThreshold);
+        threshold = newThreshold;
+    }
+
+    function _validateThreshold(
+        uint256 t
+    ) private view {
+        uint256 n = _validators.length();
+        if (t == 0 || t > n || 2 * t <= n) revert InvalidThreshold(t, n);
+    }
+
+    /* -------------------------------- upgrade --------------------------------- */
+
+    /// @dev Only callable indirectly via `commitUpgrade`, which sets the
+    ///      transient `_authorizedImpl` to the address being upgraded to.
+    ///      Direct `upgradeToAndCall` calls fail because the flag is unset.
+    error UpgradeNotAuthorized();
+    error ZeroImpl();
+
+    event UpgradeQueued(uint256 indexed actionId, address indexed newImpl);
+    event UpgradeCommitted(uint256 indexed actionId, address indexed newImpl);
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal view override {
+        if (newImplementation != _authorizedImpl) revert UpgradeNotAuthorized();
+    }
 }

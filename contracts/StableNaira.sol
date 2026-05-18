@@ -1,16 +1,27 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.28;
 
 /*
   StableNaira — UUPS upgradeable fiat-backed NGN stablecoin (EVM)
 
   Deploy via StableNairaUUPSDeployer: users and integrations MUST use the ERC1967 proxy address.
-  Upgrades: address with DEFAULT_ADMIN_ROLE calls upgradeToAndCall on the proxy.
+  Upgrades: address with DEFAULT_ADMIN_ROLE queues the upgrade, anyone commits after the timelock.
 
   Model
   - 1:1 off-chain NGN reserves; mint / burn aligned with reserve movements.
   - AccessControlEnumerable roles; EIP-2612 permit; optional mintCap.
   - Pausable, freeze blocklist, seize (forced transfer).
+  - UUPS upgrades pass through a queue/commit timelock (1-hour minimum, admin-adjustable upward).
+
+  SECURITY NOTES (audit findings — see contract-audit reports for details)
+  - HIGH-03: `burnFrom(account, amount)` is gated only by MINTER_ROLE. It does NOT
+    require an ERC20 allowance from `account`. Holders of MINTER_ROLE can burn any
+    user's balance. The CCTP TokenMessenger relies on this. Operationally, MINTER_ROLE
+    must only be held by the bridge (no EOAs), and the admin must be a multisig.
+  - LOW-07: `seizeFunds` intentionally bypasses the freeze list and the pause guard
+    (calls `super._update` directly via `_forceTransfer`). This lets compliance seizure
+    work even when the source account is frozen or the contract is paused. Seize is
+    governance-only via SEIZER_ROLE / DEFAULT_ADMIN_ROLE.
 
   Validate storage layout before any upgrade (e.g. OpenZeppelin upgrades plugin).
 */
@@ -21,17 +32,22 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+import {TimelockedUpgradeable} from "./cctp/utils/TimelockedUpgradeable.sol";
+
 contract StableNaira is
     Initializable,
     ERC20PermitUpgradeable,
     PausableUpgradeable,
     AccessControlEnumerableUpgradeable,
-    UUPSUpgradeable
+    UUPSUpgradeable,
+    TimelockedUpgradeable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant FREEZER_ROLE = keccak256("FREEZER_ROLE");
     bytes32 public constant SEIZER_ROLE = keccak256("SEIZER_ROLE");
+
+    bytes32 private constant DOMAIN_UPGRADE = keccak256("StableNaira.Upgrade.v1");
 
     uint8 private constant DECIMALS = 2;
 
@@ -41,8 +57,11 @@ contract StableNaira is
 
     mapping(address => bool) public frozen;
 
+    /// @dev Transient flag set by `commitUpgrade` to authorize one upgrade.
+    address private _authorizedImpl;
+
     /// @dev Reserved for future storage variables; shrink only when appending new state.
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
     error ZeroAddress();
     error AlreadyFrozen();
@@ -51,12 +70,16 @@ contract StableNaira is
     error MintCapExceeded();
     error SingleAdminExpected();
     error NotAuthorizedCompliance();
+    error UpgradeNotAuthorized();
+    error ZeroImpl();
 
-    event MintCapUpdated(uint256 newCap);
+    event MintCapUpdated(uint256 previous, uint256 current);
     event RedeemRequested(address indexed account, uint256 amount, string offChainReference);
     event AccountFrozen(address indexed account);
     event AccountUnfrozen(address indexed account);
     event FundsSeized(address indexed from, address indexed to, uint256 amount);
+    event UpgradeQueued(uint256 indexed actionId, address indexed newImpl);
+    event UpgradeCommitted(uint256 indexed actionId, address indexed newImpl);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -69,6 +92,8 @@ contract StableNaira is
         __Pausable_init();
         __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
+        // Default 1-hour timelock applied to upgrades; admin can raise via setTimelock.
+        __Timelocked_init(0, 0);
 
         if (initialAdmin == address(0)) revert ZeroAddress();
 
@@ -120,8 +145,8 @@ contract StableNaira is
     }
 
     function setMintCap(uint256 newCap) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        emit MintCapUpdated(mintCap, newCap);
         mintCap = newCap;
-        emit MintCapUpdated(newCap);
     }
 
     function addMinter(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -172,6 +197,7 @@ contract StableNaira is
         _burn(_msgSender(), amount);
     }
 
+    /// @dev SECURITY: gated by MINTER_ROLE only (no allowance check). See HIGH-03 above.
     function burnFrom(address account, uint256 amount) external onlyRole(MINTER_ROLE) whenNotPaused {
         _burn(account, amount);
     }
@@ -193,6 +219,9 @@ contract StableNaira is
         emit AccountUnfrozen(account);
     }
 
+    /// @dev SECURITY: intentionally bypasses pause and freeze via `_forceTransfer`.
+    ///      See LOW-07 in contract docs. Compliance seizure must work on frozen
+    ///      accounts and during pause.
     function seizeFunds(address from, address to, uint256 amount) external onlySeizerOrAdmin {
         if (from == address(0) || to == address(0)) revert ZeroAddress();
         if (balanceOf(from) < amount) revert InsufficientBalance();
@@ -208,11 +237,57 @@ contract StableNaira is
         _unpause();
     }
 
+    /* ---------------------- queue/commit: UUPS upgrade ------------------- */
+
+    function queueUpgrade(
+        address newImpl,
+        bytes calldata data
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 actionId) {
+        if (newImpl == address(0)) revert ZeroImpl();
+        actionId = _queueAction(_hashUpgrade(newImpl, data));
+        emit UpgradeQueued(actionId, newImpl);
+    }
+
+    function commitUpgrade(uint256 actionId, address newImpl, bytes calldata data) external {
+        _consumeAction(actionId, _hashUpgrade(newImpl, data));
+        _authorizedImpl = newImpl;
+        upgradeToAndCall(newImpl, data);
+        delete _authorizedImpl;
+        emit UpgradeCommitted(actionId, newImpl);
+    }
+
+    function cancelUpgrade(
+        uint256 actionId
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _cancelAction(actionId);
+    }
+
+    function setMinTimelock(
+        uint256 newMin
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setMinTimelock(newMin);
+    }
+
+    function setTimelock(
+        uint256 newTl
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setTimelock(newTl);
+    }
+
+    /* ---------------------------- internals ---------------------------- */
+
+    function _hashUpgrade(address newImpl, bytes calldata data) private pure returns (bytes32) {
+        return keccak256(abi.encode(DOMAIN_UPGRADE, newImpl, keccak256(data)));
+    }
+
     function decimals() public pure override returns (uint8) {
         return DECIMALS;
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    /// @dev Authorized only when invoked indirectly via `commitUpgrade`.
+    function _authorizeUpgrade(address newImplementation) internal view override {
+        if (newImplementation != _authorizedImpl) revert UpgradeNotAuthorized();
+    }
 
     function _forceTransfer(address from, address to, uint256 amount) internal {
         super._update(from, to, amount);

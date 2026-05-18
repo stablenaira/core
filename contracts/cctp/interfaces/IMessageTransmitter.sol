@@ -1,79 +1,69 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.28;
 
-/**
- * @title IMessageTransmitter
- * @notice The only on-chain trust boundary for cross-chain messages in the
- *         StableNaira CCTP network. Emits outbound messages on the source
- *         side and verifies + dispatches inbound messages on the destination
- *         side.
- *
- * Threat-model highlights:
- *  - Nonces are per-source-domain and strictly monotonic.
- *  - Replay protection: (sourceDomain, nonce) consumed exactly once per chain.
- *  - Signature verification uses the current-epoch validator set from
- *    `IValidatorRegistry`.
- */
+/// @title IMessageTransmitter
+/// @notice Generic cross-chain message envelope: send on the source chain,
+///         receive on the destination chain after an attestation is verified.
+///         App contracts (e.g. `TokenMessenger`) build on top of this.
 interface IMessageTransmitter {
-    event MessageSent(
-        uint32 indexed sourceDomain,
-        uint32 indexed destinationDomain,
-        uint64 indexed nonce,
-        bytes32 sender,
-        bytes32 recipient,
-        bytes message
-    );
+    /* ----------------------------- events ----------------------------- */
 
+    /// @notice Emitted on the source chain whenever a message is dispatched.
+    ///         The full encoded envelope is included so attesters and
+    ///         relayers can reconstruct it without an RPC round-trip.
+    event MessageSent(bytes message);
+
+    /// @notice Emitted on the destination chain after a message is verified
+    ///         and successfully handed off to the recipient handler.
     event MessageReceived(
-        uint32 indexed sourceDomain,
-        uint64 indexed nonce,
-        bytes32 sender,
-        bytes32 recipient,
-        bytes32 messageHash
+        address indexed caller, uint32 indexed sourceDomain, uint64 indexed nonce, bytes32 sender, bytes messageBody
     );
 
-    event HandlerUpdated(address indexed oldHandler, address indexed newHandler);
-    event PausedChanged(bool paused);
+    event SignatureVerifierUpdated(address indexed previous, address indexed current);
+    event MaxMessageBodySizeUpdated(uint256 previous, uint256 current);
 
-    error InvalidDestinationDomain();
-    error InvalidSourceDomain();
-    error NonceAlreadyUsed();
-    error InvalidAttestation();
-    error ThresholdNotMet();
-    error HandlerRejected();
-    error HandlerNotSet();
-    error NotPaused();
+    /* ----------------------------- errors ----------------------------- */
 
-    /// @notice This chain's local CCTP domain id.
+    error InvalidVersion(uint32 expected, uint32 actual);
+    error InvalidDestinationDomain(uint32 expected, uint32 actual);
+    error UnauthorizedCaller(bytes32 expectedCaller, address actualCaller);
+    error NonceAlreadyUsed(uint32 sourceDomain, uint64 nonce);
+    error MessageBodyTooLarge(uint256 size, uint256 max);
+    error RecipientHandlerFailed();
+    error InvalidVerifier();
+    error InvalidLocalDomain();
+    error LocalDestinationNotAllowed();
+
+    /* ----------------------------- views ------------------------------ */
+
     function localDomain() external view returns (uint32);
+    function version() external view returns (uint32);
+    function nextAvailableNonce() external view returns (uint64);
+    function isNonceUsed(uint32 sourceDomain, uint64 nonce) external view returns (bool);
+    function signatureVerifier() external view returns (address);
+    function maxMessageBodySize() external view returns (uint256);
 
-    /// @notice Monotonic nonce counter for outbound messages originating here.
-    function nextNonce() external view returns (uint64);
+    /* ----------------------------- writes ----------------------------- */
 
-    /// @notice True if (sourceDomain, nonce) has already been consumed locally.
-    function usedNonces(uint32 sourceDomain, uint64 nonce) external view returns (bool);
-
-    /**
-     * @notice Emit a cross-chain message.
-     * @param destinationDomain Destination domain id.
-     * @param recipient         Destination recipient (bytes32).
-     * @param body              Opaque payload forwarded to the destination handler.
-     * @return nonce            The newly allocated source nonce.
-     */
+    /// @notice Send a message to `destinationDomain`. Anyone can call;
+    ///         `msg.sender` is recorded as the envelope `sender`. The returned
+    ///         `nonce` is monotonic per the local domain.
     function sendMessage(
         uint32 destinationDomain,
         bytes32 recipient,
-        bytes calldata body
+        bytes calldata messageBody
     ) external returns (uint64 nonce);
 
-    /**
-     * @notice Verify an attestation and deliver the message to the local handler.
-     * @param message     The canonical CCTP message bytes (see CCTPMessage layout).
-     * @param attestation Aggregated BLS signature (96 bytes) concatenated with
-     *                    the signer bitmap.
-     * @return ok True if accepted and handler succeeded.
-     */
-    function receiveMessage(bytes calldata message, bytes calldata attestation)
-        external
-        returns (bool ok);
+    /// @notice Send a message that can only be `receiveMessage`-d by
+    ///         `destinationCaller` on the destination chain.
+    function sendMessageWithCaller(
+        uint32 destinationDomain,
+        bytes32 recipient,
+        bytes32 destinationCaller,
+        bytes calldata messageBody
+    ) external returns (uint64 nonce);
+
+    /// @notice Receive an attested message and dispatch to its recipient.
+    ///         Permissionless — anyone with `(message, attestation)` can call.
+    function receiveMessage(bytes calldata message, bytes calldata attestation) external returns (bool success);
 }

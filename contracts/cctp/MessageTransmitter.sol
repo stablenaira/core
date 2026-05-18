@@ -1,61 +1,80 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.28;
 
-import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-import {IMessageTransmitter} from "./interfaces/IMessageTransmitter.sol";
-import {IMessageHandler} from "./interfaces/IMessageHandler.sol";
-import {ISignatureVerifier} from "./interfaces/ISignatureVerifier.sol";
-import {IValidatorRegistry} from "./interfaces/IValidatorRegistry.sol";
-import {CCTPMessage} from "./libraries/CCTPMessage.sol";
+import { TimelockedUpgradeable } from "./utils/TimelockedUpgradeable.sol";
+import { Bytes32Address } from "./libraries/Bytes32Address.sol";
+import { Message } from "./libraries/Message.sol";
+import { IMessageTransmitter } from "./interfaces/IMessageTransmitter.sol";
+import { IMessageHandler } from "./interfaces/IMessageHandler.sol";
+import { ISignatureVerifier } from "./interfaces/ISignatureVerifier.sol";
 
-/**
- * @title MessageTransmitter
- * @notice On-chain root of trust for inbound CCTP messages and origin of
- *         outbound messages. Verifies BLS attestations via the configured
- *         `ISignatureVerifier` against the current epoch of `IValidatorRegistry`.
- *
- * Outbound flow:
- *   sendMessage(...) -> allocate nonce -> emit MessageSent(...)
- *
- * Inbound flow:
- *   receiveMessage(raw, attestation)
- *     -> decode message, check version + destDomain + replay
- *     -> split attestation = (aggSig[96], signerBitmap[...])
- *     -> registry.resolveBitmap(bitmap) -> (weight, pks)
- *     -> require weight >= threshold
- *     -> verifier.verifyAggregated(digest, pks, aggSig)
- *     -> mark nonce used, emit MessageReceived
- *     -> dispatch to IMessageHandler
- */
+/// @title MessageTransmitter
+/// @notice Generic cross-chain message envelope. App contracts (e.g.
+///         `TokenMessenger`) wrap `sendMessage` and implement `IMessageHandler`
+///         to receive on the destination chain.
+///
+///         Sensitive admin operations — UUPS upgrades and `setSignatureVerifier`
+///         — flow through the shared `TimelockedUpgradeable` queue/commit gate
+///         (1-hour minimum, owner-adjustable upward). Lower-impact operations
+///         (`setMaxMessageBodySize`, `pause`/`unpause`) remain immediate.
 contract MessageTransmitter is
-    Initializable,
-    AccessControlEnumerableUpgradeable,
-    PausableUpgradeable,
+    TimelockedUpgradeable,
     UUPSUpgradeable,
+    Ownable2StepUpgradeable,
+    PausableUpgradeable,
     IMessageTransmitter
 {
-    using CCTPMessage for CCTPMessage.Message;
+    using Bytes32Address for address;
+    using Bytes32Address for bytes32;
 
-    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    /// @dev Envelope version this transmitter accepts. Bumped only on a
+    ///      breaking layout change to `Message`.
+    uint32 private constant ENVELOPE_VERSION = 1;
 
+    /// @dev Floor on `maxMessageBodySize` so a misconfigured value cannot
+    ///      brick the burn path. 132 = `BurnMessage.BODY_LEN`.
+    uint256 public constant MIN_MAX_BODY_SIZE = 132;
+
+    bytes32 private constant DOMAIN_UPGRADE = keccak256("MessageTransmitter.Upgrade.v1");
+    bytes32 private constant DOMAIN_SET_VERIFIER = keccak256("MessageTransmitter.SetVerifier.v1");
+
+    /// @inheritdoc IMessageTransmitter
     uint32 public override localDomain;
-    uint64 public override nextNonce;
 
-    IValidatorRegistry public registry;
-    ISignatureVerifier public verifier;
-    IMessageHandler public handler;
+    /// @dev Next nonce allocated by `sendMessage` on this chain.
+    uint64 private _nextNonce;
 
-    /// @dev sourceDomain => nonce => consumed?
-    mapping(uint32 => mapping(uint64 => bool)) public override usedNonces;
+    /// @inheritdoc IMessageTransmitter
+    address public override signatureVerifier;
 
-    uint256[45] private __gap;
+    /// @inheritdoc IMessageTransmitter
+    uint256 public override maxMessageBodySize;
 
-    error AttestationTooShort();
+    /// @dev `usedNonces[sourceDomain][nonce] == true` once received here.
+    mapping(uint32 => mapping(uint64 => bool)) private _usedNonces;
+
+    /// @dev Transient flag set by `commitUpgrade` to authorize one upgrade.
+    address private _authorizedImpl;
+
+    /// @dev Storage gap. 50 - 4 used = 46.
+    uint256[46] private __gap;
+
+    /* ------------------------------ events ----------------------------- */
+
+    event UpgradeQueued(uint256 indexed actionId, address indexed newImpl);
+    event UpgradeCommitted(uint256 indexed actionId, address indexed newImpl);
+    event VerifierChangeQueued(uint256 indexed actionId, address indexed newVerifier);
+    event VerifierChangeCommitted(uint256 indexed actionId, address indexed newVerifier);
+
+    /* ------------------------------ errors ----------------------------- */
+
+    error UpgradeNotAuthorized();
+    error ZeroImpl();
+    error MaxBodySizeTooSmall(uint256 attempted, uint256 floor);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -63,135 +82,230 @@ contract MessageTransmitter is
     }
 
     function initialize(
-        address admin,
-        address governor,
-        address pauser,
         uint32 localDomain_,
-        address registry_,
-        address verifier_
-    ) public initializer {
-        __AccessControlEnumerable_init();
-        __Pausable_init();
-        __UUPSUpgradeable_init();
+        address signatureVerifier_,
+        uint256 maxMessageBodySize_,
+        address owner_,
+        uint256 initialTimelock,
+        uint256 initialMinTimelock
+    ) external initializer {
+        if (localDomain_ == 0) revert InvalidLocalDomain();
+        if (signatureVerifier_ == address(0)) revert InvalidVerifier();
+        if (maxMessageBodySize_ < MIN_MAX_BODY_SIZE) {
+            revert MaxBodySizeTooSmall(maxMessageBodySize_, MIN_MAX_BODY_SIZE);
+        }
 
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(GOVERNOR_ROLE, governor);
-        _grantRole(PAUSER_ROLE, pauser);
+        __Ownable_init(owner_);
+        __Pausable_init();
+        __Timelocked_init(initialTimelock, initialMinTimelock);
 
         localDomain = localDomain_;
-        registry = IValidatorRegistry(registry_);
-        verifier = ISignatureVerifier(verifier_);
+        signatureVerifier = signatureVerifier_;
+        maxMessageBodySize = maxMessageBodySize_;
+
+        emit SignatureVerifierUpdated(address(0), signatureVerifier_);
+        emit MaxMessageBodySizeUpdated(0, maxMessageBodySize_);
     }
 
-    // ---- Governance ----
+    /* ------------------------------ views ------------------------------ */
 
-    function setHandler(address newHandler) external onlyRole(GOVERNOR_ROLE) {
-        address old = address(handler);
-        handler = IMessageHandler(newHandler);
-        emit HandlerUpdated(old, newHandler);
+    /// @inheritdoc IMessageTransmitter
+    function version() external pure override returns (uint32) {
+        return ENVELOPE_VERSION;
     }
 
-    function setRegistry(address newRegistry) external onlyRole(GOVERNOR_ROLE) {
-        registry = IValidatorRegistry(newRegistry);
+    /// @inheritdoc IMessageTransmitter
+    function nextAvailableNonce() external view override returns (uint64) {
+        return _nextNonce;
     }
 
-    function setVerifier(address newVerifier) external onlyRole(GOVERNOR_ROLE) {
-        verifier = ISignatureVerifier(newVerifier);
+    /// @inheritdoc IMessageTransmitter
+    function isNonceUsed(uint32 sourceDomain, uint64 nonce) external view override returns (bool) {
+        return _usedNonces[sourceDomain][nonce];
     }
 
-    function pause() external onlyRole(PAUSER_ROLE) {
-        _pause();
-        emit PausedChanged(true);
-    }
+    /* ------------------------------- send ------------------------------ */
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _unpause();
-        emit PausedChanged(false);
-    }
-
-    // ---- Send ----
-
+    /// @inheritdoc IMessageTransmitter
     function sendMessage(
         uint32 destinationDomain,
         bytes32 recipient,
-        bytes calldata body
-    ) external whenNotPaused returns (uint64 nonce) {
-        if (destinationDomain == localDomain) revert InvalidDestinationDomain();
+        bytes calldata messageBody
+    ) external override whenNotPaused returns (uint64 nonce) {
+        return _sendMessage(destinationDomain, recipient, bytes32(0), messageBody);
+    }
 
-        nonce = nextNonce++;
+    /// @inheritdoc IMessageTransmitter
+    function sendMessageWithCaller(
+        uint32 destinationDomain,
+        bytes32 recipient,
+        bytes32 destinationCaller,
+        bytes calldata messageBody
+    ) external override whenNotPaused returns (uint64 nonce) {
+        return _sendMessage(destinationDomain, recipient, destinationCaller, messageBody);
+    }
 
-        CCTPMessage.Message memory m = CCTPMessage.Message({
-            version: CCTPMessage.VERSION,
-            sourceDomain: localDomain,
-            destinationDomain: destinationDomain,
-            nonce: nonce,
-            sender: _addressToBytes32(msg.sender),
-            recipient: recipient,
-            body: body
-        });
+    function _sendMessage(
+        uint32 destinationDomain,
+        bytes32 recipient,
+        bytes32 destinationCaller,
+        bytes calldata messageBody
+    ) private returns (uint64 nonce) {
+        if (destinationDomain == localDomain) revert LocalDestinationNotAllowed();
+        if (messageBody.length > maxMessageBodySize) {
+            revert MessageBodyTooLarge(messageBody.length, maxMessageBodySize);
+        }
 
-        bytes memory encoded = CCTPMessage.encode(m);
+        nonce = _nextNonce++;
 
-        emit MessageSent(
+        bytes memory encoded = Message.format(
+            ENVELOPE_VERSION,
             localDomain,
             destinationDomain,
             nonce,
-            m.sender,
+            msg.sender.toBytes32(),
             recipient,
-            encoded
+            destinationCaller,
+            messageBody
         );
+
+        emit MessageSent(encoded);
     }
 
-    // ---- Receive ----
+    /* ----------------------------- receive ----------------------------- */
 
-    /// @dev Size of an uncompressed G2 aggregated signature.
-    uint256 private constant AGG_SIG_SIZE = 256;
+    /// @inheritdoc IMessageTransmitter
+    function receiveMessage(
+        bytes calldata message,
+        bytes calldata attestation
+    ) external override whenNotPaused returns (bool) {
+        // 1. Verify attestation FIRST — cheapest reject for invalid messages.
+        ISignatureVerifier(signatureVerifier).verify(
+            Message.attestationDigest(message, block.chainid, address(this)),
+            attestation
+        );
 
-    function receiveMessage(bytes calldata rawMessage, bytes calldata attestation)
-        external
-        whenNotPaused
-        returns (bool)
-    {
-        if (address(handler) == address(0)) revert HandlerNotSet();
-        if (attestation.length < AGG_SIG_SIZE) revert AttestationTooShort();
+        // 2. Decode envelope (this also enforces minimum length).
+        Message.EnvelopeView memory v = Message.decode(message);
 
-        CCTPMessage.Message memory m = CCTPMessage.decode(rawMessage);
-        CCTPMessage.requireSupportedVersion(m.version);
+        // 3. Envelope sanity.
+        if (v.version != ENVELOPE_VERSION) revert InvalidVersion(ENVELOPE_VERSION, v.version);
+        if (v.destinationDomain != localDomain) revert InvalidDestinationDomain(localDomain, v.destinationDomain);
+        if (v.destinationCaller != bytes32(0) && v.destinationCaller != msg.sender.toBytes32()) {
+            revert UnauthorizedCaller(v.destinationCaller, msg.sender);
+        }
 
-        if (m.destinationDomain != localDomain) revert InvalidDestinationDomain();
-        if (m.sourceDomain == localDomain) revert InvalidSourceDomain();
-        if (usedNonces[m.sourceDomain][m.nonce]) revert NonceAlreadyUsed();
+        // 4. Replay protection — mark BEFORE handler so a re-entrant retry
+        //    of the same message fails fast. If the handler reverts, the
+        //    whole tx reverts and the mark is rolled back.
+        if (_usedNonces[v.sourceDomain][v.nonce]) revert NonceAlreadyUsed(v.sourceDomain, v.nonce);
+        _usedNonces[v.sourceDomain][v.nonce] = true;
 
-        // Split attestation = aggSig(256 uncompressed G2) || signerBitmap(remaining)
-        bytes calldata aggSig = attestation[0:AGG_SIG_SIZE];
-        bytes calldata signerBitmap = attestation[AGG_SIG_SIZE:];
+        // 5. Hand off to the recipient. The recipient must be EVM-shaped
+        //    (high 12 bytes zero) on this chain.
+        address recipient = v.recipient.toAddressChecked();
+        bool ok = IMessageHandler(recipient).handleReceiveMessage(v.sourceDomain, v.sender, v.body);
+        if (!ok) revert RecipientHandlerFailed();
 
-        (uint256 weight, bytes[] memory pks) = registry.resolveBitmap(signerBitmap);
-        if (weight < registry.threshold()) revert ThresholdNotMet();
-
-        bytes32 digest = CCTPMessage.digest(rawMessage);
-        // The digest above includes the prefix since rawMessage is already
-        // the encoded message; `CCTPMessage.digest` prepends the prefix before
-        // hashing. See the library for details.
-
-        bool ok = verifier.verifyAggregated(digest, pks, aggSig);
-        if (!ok) revert InvalidAttestation();
-
-        usedNonces[m.sourceDomain][m.nonce] = true;
-
-        emit MessageReceived(m.sourceDomain, m.nonce, m.sender, m.recipient, digest);
-
-        bool handled = handler.handleReceiveMessage(m.sourceDomain, m.sender, m.body);
-        if (!handled) revert HandlerRejected();
-
+        emit MessageReceived(msg.sender, v.sourceDomain, v.nonce, v.sender, v.body);
         return true;
     }
 
-    // ---- Internal ----
+    /* ----------------- queue/commit: signature verifier ---------------- */
 
-    function _addressToBytes32(address a) internal pure returns (bytes32) {
-        return bytes32(uint256(uint160(a)));
+    /// @notice Queue a verifier swap. Hash-bound to `newVerifier`.
+    function queueSetSignatureVerifier(
+        address newVerifier
+    ) external onlyOwner returns (uint256 actionId) {
+        if (newVerifier == address(0)) revert InvalidVerifier();
+        actionId = _queueAction(_hashSetVerifier(newVerifier));
+        emit VerifierChangeQueued(actionId, newVerifier);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    /// @notice Permissionless commit after eta. Caller must pass identical args.
+    function commitSetSignatureVerifier(uint256 actionId, address newVerifier) external {
+        _consumeAction(actionId, _hashSetVerifier(newVerifier));
+        emit SignatureVerifierUpdated(signatureVerifier, newVerifier);
+        signatureVerifier = newVerifier;
+        emit VerifierChangeCommitted(actionId, newVerifier);
+    }
+
+    /* --------------------- queue/commit: UUPS upgrade ------------------- */
+
+    function queueUpgrade(
+        address newImpl,
+        bytes calldata data
+    ) external onlyOwner returns (uint256 actionId) {
+        if (newImpl == address(0)) revert ZeroImpl();
+        actionId = _queueAction(_hashUpgrade(newImpl, data));
+        emit UpgradeQueued(actionId, newImpl);
+    }
+
+    function commitUpgrade(uint256 actionId, address newImpl, bytes calldata data) external {
+        _consumeAction(actionId, _hashUpgrade(newImpl, data));
+        _authorizedImpl = newImpl;
+        upgradeToAndCall(newImpl, data);
+        delete _authorizedImpl;
+        emit UpgradeCommitted(actionId, newImpl);
+    }
+
+    /* -------------------------- cancel any action ----------------------- */
+
+    function cancel(
+        uint256 actionId
+    ) external onlyOwner {
+        _cancelAction(actionId);
+    }
+
+    /* -------------------------- timelock setters ------------------------ */
+
+    function setMinTimelock(
+        uint256 newMin
+    ) external onlyOwner {
+        _setMinTimelock(newMin);
+    }
+
+    function setTimelock(
+        uint256 newTl
+    ) external onlyOwner {
+        _setTimelock(newTl);
+    }
+
+    /* ---------------------------- immediate admin ----------------------- */
+
+    function setMaxMessageBodySize(
+        uint256 newMax
+    ) external onlyOwner {
+        if (newMax < MIN_MAX_BODY_SIZE) revert MaxBodySizeTooSmall(newMax, MIN_MAX_BODY_SIZE);
+        emit MaxMessageBodySizeUpdated(maxMessageBodySize, newMax);
+        maxMessageBodySize = newMax;
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /* ----------------------------- internals --------------------------- */
+
+    function _hashUpgrade(address newImpl, bytes calldata data) private pure returns (bytes32) {
+        return keccak256(abi.encode(DOMAIN_UPGRADE, newImpl, keccak256(data)));
+    }
+
+    function _hashSetVerifier(
+        address newVerifier
+    ) private pure returns (bytes32) {
+        return keccak256(abi.encode(DOMAIN_SET_VERIFIER, newVerifier));
+    }
+
+    /* ----------------------------- upgrade ----------------------------- */
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal view override {
+        if (newImplementation != _authorizedImpl) revert UpgradeNotAuthorized();
+    }
 }

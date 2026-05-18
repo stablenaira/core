@@ -1,0 +1,52 @@
+{
+  "network": "ethereum",
+  "chainId": 1,
+  "domainId": 1,
+  "label": "Ethereum Mainnet",
+  "explorerUrl": "https://etherscan.io",
+  "deployer": "0xDeE610DEDc652aa0A8EB9d70EB415d9400fCF387",
+  "deployedAt": "2026-05-05T12:36:00.973Z",
+  "contracts": {
+    "stableNaira": "0x31337b68215526Cc24660C5A97C390fc008e0531",
+    "stableNairaImpl": "0x2D83d054C4FED6Fdf76aCa9AB8561cBA4b6b2726",
+    "stableNairaDeployer": "0xf1E6879661A6E44EEecC6951c795d11Abdf6b98F",
+    "validatorRegistry": "0xf408B53845374C92830cdDD822291c8bD71b37BE",
+    "validatorRegistryImpl": "0x9f3Ab1CB9C84C6025F2ae275fCD05746DB67a1B1",
+    "verifier": "0x44de00780F6Fb2dBecBEA37191C1B4eAfddFc53C",
+    "messageTransmitter": "0x6ab2ED90AC902B9A1C1E122eEAD6a4Fdcbc804b7",
+    "messageTransmitterImpl": "0xcA8FaCF642F83a6f5297277624d1766F33657310",
+    "tokenMessenger": "0x935568A95371caF3C8Baa4ACe0873D7821802A39",
+    "tokenMessengerImpl": "0xC26c978C5B7335585F0574B1b86a8E0b7df70729"
+  },
+  "configuration": {
+    "tokenName": "StableNaira",
+    "tokenSymbol": "SNR",
+    "validators": [
+      "0xDeE610DEDc652aa0A8EB9d70EB415d9400fCF387"
+    ],
+    "threshold": 1,
+    "feeBps": 0,
+    "maxMessageBodySize": 4096,
+    "minterRoleGranted": true
+  },
+  "remoteRouters": [
+    {
+      "domainId": 56,
+      "router": "0x000000000000000000000000c99a4e96105cd2a3048059e9106efa5b892ab8f3",
+      "actionId": "1",
+      "status": "committed",
+      "queuedAt": "2026-05-05T12:42:52.833Z",
+      "eta": 1777988567,
+      "committedAt": "2026-05-05T13:45:06.713Z"
+    },
+    {
+      "domainId": 8453,
+      "router": "0x000000000000000000000000f1e6879661a6e44eeecc6951c795d11abdf6b98f",
+      "actionId": "2",
+      "status": "committed",
+      "queuedAt": "2026-05-05T12:43:16.923Z",
+      "eta": 1777988591,
+      "committedAt": "2026-05-05T13:45:13.768Z"
+    }
+  ]
+}

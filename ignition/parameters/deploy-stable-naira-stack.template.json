@@ -1,80 +1,101 @@
 {
-  "deployStableNaira": true,
-  "stableNairaAddress": "0xfaE7C1AD37b7ad8848f840109332793bC5889563",
-  "token": {
-    "name": "StableNaira",
-    "symbol": "SNR"
-  },
-  "cctp": {
-    "admin": "0x39e67B9238B874f74233692454E2D04E9fC68363",
-    "governor": "0x39e67B9238B874f74233692454E2D04E9fC68363",
-    "pauser": "0x39e67B9238B874f74233692454E2D04E9fC68363",
-    "timelock": 3600,
-    "threshold": "0",
-    "g2Cofactor": "0x05d543a95414e7f1091d50792876a202cd91de4547085abaa68a205b2e5a7ddfa628f1cb4d9e82ef21537e293a6691ae1616ec6e786f0c70cf1c38e31c7238e5",
-    "hashToCurveDst": "0x535441424c454e414952415f434354505f424c53313233383147325f584d443a5348412d3235365f535357555f524f5f7631"
-  },
-  "wire": {
-    "remoteRouters": [
-      {
-        "domainId": 1,
-        "router": "0x0000000000000000000000000000000000000000"
-      }
-    ],
-    "globalCap": {
-      "windowSec": 3600,
-      "cap": "1000000000"
-    },
-    "domainCaps": [
-      {
-        "domainId": 1,
-        "windowSec": 3600,
-        "cap": "500000000"
-      }
-    ]
-  },
-  "priceOracle": {
-    "deploy": true,
-    "address": "0x0000000000000000000000000000000000000000",
-    "decimals": 8,
-    "reporters": [
-      "0x39e67B9238B874f74233692454E2D04E9fC68363"
-    ],
-    "quorum": 1
-  },
-  "roles": {
-    "stableNaira": {
-      "minters": [],
-      "pausers": [],
-      "freezers": [],
-      "seizers": []
-    },
-    "messageTransmitter": {
-      "governors": [],
-      "pausers": [],
-      "admins": []
-    },
-    "bridgeRouter": {
-      "governors": [],
-      "pausers": [],
-      "admins": []
+  "_doc": "Per-network deploy parameters for the StableNaira CCTP-style stack. Each chain deploys: StableNaira (UUPS proxy + impl + factory), ValidatorRegistry (UUPS), MultisigVerifier (non-upgradeable), MessageTransmitter (UUPS), TokenMessenger (UUPS). BSC chains additionally deploy StableNairaPriceOracle. Domain ids are application-defined uint32 identifiers stamped into every cross-chain message; they MUST match across chains and never collide. Timelock 0 means 'use the contract floor (1h)'. Initial validators / threshold are passed at init and bypass the timelock; everything else (route wiring, validator changes after init, verifier swap) goes through the queue/commit gate.",
+  "_admin_history": "Rotation log (most recent last). 1) Testnet rollout 2026-05-04: admin/owner/validators/reporters seeded with 0x39e67B9238B874f74233692454E2D04E9fC68363 (testnet deployer). 2) First mainnet rollout 2026-05-05: rotated to mainnet deployer 0xDe-E6-10-DE-Dc-65-2a-a0-A8-EB-9d-70-EB-41-5d-94-00-fC-F3-87 (hyphens added so audit-trail entries survive bulk replace_all edits to this template). The live mainnet contracts on BSC, Ethereum, and Base were initialized with that 0xDeE6 address as their on-chain owner. 3) Mainnet re-prep 2026-05-05: rotated forward to 0x39e67B9238B874f74233692454E2D04E9fC68363 in preparation for a fresh mainnet redeploy under that key. The 0xDeE6 contracts remain immutable on chain until ownership is transferred or a new deployment supersedes them. Single-key deployer-as-owner posture continues to override the published Mainnet Hard Gates; multisig migration is the next operational priority.",
+  "common": {
+    "token": {
+      "name": "StableNaira",
+      "symbol": "SNR",
+      "mintCap": "0"
     },
     "validatorRegistry": {
-      "governors": [],
-      "admins": []
+      "validators": [
+        "0x39e67B9238B874f74233692454E2D04E9fC68363"
+      ],
+      "threshold": 1,
+      "initialTimelock": 0,
+      "initialMinTimelock": 0
+    },
+    "messageTransmitter": {
+      "maxMessageBodySize": 4096,
+      "initialTimelock": 0,
+      "initialMinTimelock": 0
+    },
+    "tokenMessenger": {
+      "initialTimelock": 0,
+      "initialMinTimelock": 0,
+      "feeBps": 0,
+      "feeRecipient": "0x0000000000000000000000000000000000000000"
+    },
+    "oracle": {
+      "decimals": 8,
+      "reporters": [
+        "0x39e67B9238B874f74233692454E2D04E9fC68363"
+      ],
+      "quorum": 1
+    },
+    "owner": "0x39e67B9238B874f74233692454E2D04E9fC68363",
+    "admin": "0x39e67B9238B874f74233692454E2D04E9fC68363"
+  },
+  "networks": {
+    "localhost": {
+      "label": "Local Hardhat (smoke)",
+      "chainId": 31337,
+      "domainId": 31337,
+      "deployOracle": true,
+      "explorerUrl": "http://localhost:8545",
+      "peers": []
+    },
+    "testnet": {
+      "label": "BSC Testnet",
+      "chainId": 97,
+      "domainId": 97,
+      "deployOracle": true,
+      "explorerUrl": "https://testnet.bscscan.com",
+      "peers": ["sepolia", "baseSepolia"]
+    },
+    "sepolia": {
+      "label": "Ethereum Sepolia",
+      "chainId": 11155111,
+      "domainId": 11155111,
+      "deployOracle": false,
+      "explorerUrl": "https://sepolia.etherscan.io",
+      "peers": ["testnet", "baseSepolia"]
+    },
+    "baseSepolia": {
+      "label": "Base Sepolia",
+      "chainId": 84532,
+      "domainId": 84532,
+      "deployOracle": false,
+      "explorerUrl": "https://sepolia.basescan.org",
+      "peers": ["testnet", "sepolia"]
+    },
+    "mainnet": {
+      "label": "BSC Mainnet",
+      "chainId": 56,
+      "domainId": 56,
+      "deployOracle": true,
+      "explorerUrl": "https://bscscan.com",
+      "peers": ["ethereum", "base"]
+    },
+    "ethereum": {
+      "label": "Ethereum Mainnet",
+      "chainId": 1,
+      "domainId": 1,
+      "deployOracle": false,
+      "explorerUrl": "https://etherscan.io",
+      "peers": ["mainnet", "base"]
+    },
+    "base": {
+      "label": "Base Mainnet",
+      "chainId": 8453,
+      "domainId": 8453,
+      "deployOracle": false,
+      "explorerUrl": "https://basescan.org",
+      "peers": ["mainnet", "ethereum"]
     }
   },
-  "validatorBootstrap": {
-    "validators": [
-      {
-        "publicKey": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-        "weight": "1",
-        "identityAddress": "0x39e67B9238B874f74233692454E2D04E9fC68363"
-      }
-    ],
-    "threshold": "0",
-    "queueStateFile": "ignition/deployments/<network>/validator-registry-queue.json"
-  },
-  "confirmations": 1,
-  "outputFile": "ignition/deployments/<network>/stable-naira-stack-addresses.json"
+  "deploymentGroups": {
+    "testnet": ["testnet", "sepolia", "baseSepolia"],
+    "mainnet": ["mainnet", "ethereum", "base"]
+  }
 }

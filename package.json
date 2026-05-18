@@ -1,27 +1,84 @@
 {
-  "name": "Stablenaira",
+  "name": "StableNaira",
   "config": {
     "network": "baseSepolia"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "compile": "npx hardhat compile",
-    "delopments": "npx hardhat ignition deployments",
-    "delopment-status": "npx hardhat ignition status $npm_package_config_network",
-    "delopment-reset": "rm -rf ignition/deployments/$npm_package_config_network",
-    "deploy:stable-naira-stack": "DEPLOY_CONFIG=./ignition/parameters/deploy-stable-naira-stack.template.json npx hardhat run scripts/deploy-stable-naira-stack.cjs --network $npm_package_config_network",
-    "verify:stable-naira-stack": "DEPLOY_CONFIG=./ignition/parameters/deploy-stable-naira-stack.template.json npx hardhat run scripts/verify-stable-naira-stack.cjs --network $npm_package_config_network",
-    "set-remote-routers": "bun scripts/set-remote-routers.cjs --hub-to-spokes",
-    "cctp:sync-validators": "DEPLOY_CONFIG=./ignition/parameters/deploy-stable-naira-stack.template.json npx hardhat run scripts/configure-validator-registry.cjs --network $npm_package_config_network",
-    "cctp:set-verifier-dst": "npx hardhat run scripts/set-verifier-dst.cjs --network $npm_package_config_network",
-    "cctp:upgrade-registry": "DEPLOY_CONFIG=./ignition/parameters/deploy-stable-naira-stack.template.json npx hardhat run scripts/upgrade-validator-registry.cjs --network $npm_package_config_network"
+    "test": "npx hardhat test",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf artifacts cache typechain-types",
+
+    "precheck": "npx hardhat run scripts/precheck.ts --network hardhat",
+    "precheck:mainnet": "GROUP=mainnet npx hardhat run scripts/precheck.ts --network hardhat",
+
+    "demo": "npx hardhat run scripts/demo.ts --network hardhat",
+    "demo:fast": "COUNTDOWN_SEC=5 STEP_MS=80 npx hardhat run scripts/demo.ts --network hardhat",
+    "demo:slow": "COUNTDOWN_SEC=60 STEP_MS=400 npx hardhat run scripts/demo.ts --network hardhat",
+    "demo:realtime": "COUNTDOWN_SEC=3600 npx hardhat run scripts/demo.ts --network hardhat",
+
+    "ceremony:testnet": "bash scripts/ceremony.sh testnet",
+    "ceremony:mainnet": "GROUP=mainnet I_REALLY_MEAN_MAINNET=yes bash scripts/ceremony.sh",
+
+    "deploy:testnet": "PHASE=deploy npx hardhat run scripts/deploy.ts --network testnet",
+    "deploy:sepolia": "PHASE=deploy npx hardhat run scripts/deploy.ts --network sepolia",
+    "deploy:base-sepolia": "PHASE=deploy npx hardhat run scripts/deploy.ts --network baseSepolia",
+    "deploy:mainnet": "PHASE=deploy npx hardhat run scripts/deploy.ts --network mainnet",
+    "deploy:ethereum": "PHASE=deploy npx hardhat run scripts/deploy.ts --network ethereum",
+    "deploy:base": "PHASE=deploy npx hardhat run scripts/deploy.ts --network base",
+
+    "oracle:testnet": "PHASE=oracle npx hardhat run scripts/deploy.ts --network testnet",
+    "oracle:mainnet": "PHASE=oracle npx hardhat run scripts/deploy.ts --network mainnet",
+
+    "verify:testnet": "PHASE=verify npx hardhat run scripts/deploy.ts --network testnet",
+    "verify:sepolia": "PHASE=verify npx hardhat run scripts/deploy.ts --network sepolia",
+    "verify:base-sepolia": "PHASE=verify npx hardhat run scripts/deploy.ts --network baseSepolia",
+    "verify:mainnet": "PHASE=verify npx hardhat run scripts/deploy.ts --network mainnet",
+    "verify:ethereum": "PHASE=verify npx hardhat run scripts/deploy.ts --network ethereum",
+    "verify:base": "PHASE=verify npx hardhat run scripts/deploy.ts --network base",
+
+    "queue-wires:testnet": "PHASE=queue-wires npx hardhat run scripts/deploy.ts --network testnet",
+    "queue-wires:sepolia": "PHASE=queue-wires npx hardhat run scripts/deploy.ts --network sepolia",
+    "queue-wires:base-sepolia": "PHASE=queue-wires npx hardhat run scripts/deploy.ts --network baseSepolia",
+
+    "queue-all:testnet": "GROUP=testnet PHASE=queue-all npx hardhat run scripts/deploy.ts --network testnet",
+    "queue-all:mainnet": "GROUP=mainnet PHASE=queue-all npx hardhat run scripts/deploy.ts --network mainnet",
+
+    "commit-wires:testnet": "PHASE=commit-wires npx hardhat run scripts/deploy.ts --network testnet",
+    "commit-wires:sepolia": "PHASE=commit-wires npx hardhat run scripts/deploy.ts --network sepolia",
+    "commit-wires:base-sepolia": "PHASE=commit-wires npx hardhat run scripts/deploy.ts --network baseSepolia",
+
+    "wait-and-commit:testnet": "PHASE=wait-and-commit npx hardhat run scripts/deploy.ts --network testnet",
+    "wait-and-commit:sepolia": "PHASE=wait-and-commit npx hardhat run scripts/deploy.ts --network sepolia",
+    "wait-and-commit:base-sepolia": "PHASE=wait-and-commit npx hardhat run scripts/deploy.ts --network baseSepolia",
+
+    "commit-all:testnet": "GROUP=testnet PHASE=commit-all npx hardhat run scripts/deploy.ts --network testnet",
+    "commit-all:mainnet": "GROUP=mainnet PHASE=commit-all npx hardhat run scripts/deploy.ts --network mainnet",
+
+    "summary": "PHASE=summary npx hardhat run scripts/deploy.ts --network hardhat",
+
+    "smoke:bsc-to-sepolia": "SOURCE=testnet DEST=sepolia AMOUNT=100 npx hardhat run scripts/smoke-crosschain.ts --network testnet",
+    "smoke:bsc-to-base": "SOURCE=testnet DEST=baseSepolia AMOUNT=100 npx hardhat run scripts/smoke-crosschain.ts --network testnet",
+    "smoke:sepolia-to-bsc": "SOURCE=sepolia DEST=testnet AMOUNT=100 npx hardhat run scripts/smoke-crosschain.ts --network sepolia",
+    "smoke:sepolia-to-base": "SOURCE=sepolia DEST=baseSepolia AMOUNT=100 npx hardhat run scripts/smoke-crosschain.ts --network sepolia",
+    "smoke:base-to-bsc": "SOURCE=baseSepolia DEST=testnet AMOUNT=100 npx hardhat run scripts/smoke-crosschain.ts --network baseSepolia",
+    "smoke:base-to-sepolia": "SOURCE=baseSepolia DEST=sepolia AMOUNT=100 npx hardhat run scripts/smoke-crosschain.ts --network baseSepolia",
+
+    "ignition:deployments": "npx hardhat ignition deployments",
+    "ignition:status": "npx hardhat ignition status $npm_package_config_network",
+    "ignition:reset": "rm -rf ignition/deployments/$npm_package_config_network"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.17",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.5",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^25.6.0",
     "dotenv": "^10.0.0",
-    "hardhat": "^2.22.2"
+    "hardhat": "^2.22.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.2",

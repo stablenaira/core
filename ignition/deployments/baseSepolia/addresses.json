@@ -1,0 +1,52 @@
+{
+  "network": "baseSepolia",
+  "chainId": 84532,
+  "domainId": 84532,
+  "label": "Base Sepolia",
+  "explorerUrl": "https://sepolia.basescan.org",
+  "deployer": "0x39e67B9238B874f74233692454E2D04E9fC68363",
+  "deployedAt": "2026-05-05T08:00:15.431Z",
+  "contracts": {
+    "stableNaira": "0x7EB87D0b630fBB6f0B7782812322ddEAD4b6d535",
+    "stableNairaImpl": "0xB7E27Db1bD194737FAacFbd537acd45e6890d710",
+    "stableNairaDeployer": "0x8C438EBfcCF55A162f8E7d1F0Eac1BdfDAd4C5C1",
+    "validatorRegistry": "0xfeC1E1a5507E0739E92b33Ea0AbD5E7E67D6330B",
+    "validatorRegistryImpl": "0x488F9a443E6B329B73bDF6c9C598AAE5E9EF70b0",
+    "verifier": "0xEB11eED7cA385111baf83b269cbAD9Ed06B99dce",
+    "messageTransmitter": "0x58232B10d5E65CDd5748B5C96E963C1B3B055aef",
+    "messageTransmitterImpl": "0x9ff30Bad8Db67C74A6846fE169596e25945583Dd",
+    "tokenMessenger": "0xAc12ca07Fea1198b9E0E194E4ebBf9fA2b940Ce8",
+    "tokenMessengerImpl": "0xA43bC2129453AF654f354a57bEd94fD2Dc3BE463"
+  },
+  "configuration": {
+    "tokenName": "StableNaira",
+    "tokenSymbol": "SNR",
+    "validators": [
+      "0x39e67B9238B874f74233692454E2D04E9fC68363"
+    ],
+    "threshold": 1,
+    "feeBps": 0,
+    "maxMessageBodySize": 4096,
+    "minterRoleGranted": true
+  },
+  "remoteRouters": [
+    {
+      "domainId": 97,
+      "router": "0x0000000000000000000000000bf49f518f9b0f2072ac240a08408533ec745f71",
+      "actionId": "1",
+      "status": "committed",
+      "queuedAt": "2026-05-05T08:08:51.473Z",
+      "eta": 1777972132,
+      "committedAt": "2026-05-05T09:11:04.589Z"
+    },
+    {
+      "domainId": 11155111,
+      "router": "0x000000000000000000000000659d44add4eba432273ace3a26ec9e18783aeb69",
+      "actionId": "2",
+      "status": "committed",
+      "queuedAt": "2026-05-05T08:08:53.424Z",
+      "eta": 1777972134,
+      "committedAt": "2026-05-05T09:11:06.327Z"
+    }
+  ]
+}
