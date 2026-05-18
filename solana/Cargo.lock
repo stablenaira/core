@@ -1836,6 +1836,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "message_transmitter"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "libsecp256k1 0.7.2",
+ "litesvm",
+ "solana-instruction",
+ "solana-keccak-hasher",
+ "solana-keypair",
+ "solana-message",
+ "solana-pubkey 3.0.0",
+ "solana-signer",
+ "solana-transaction",
+ "tiny-keccak",
+ "validator_registry",
+]
+
+[[package]]
 name = "num"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
