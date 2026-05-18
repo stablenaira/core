@@ -48,12 +48,21 @@ const RPCS: Record<string, RpcConfig> = {
     url: process.env.BASE_MAINNET_RPC_URL ?? "https://mainnet.base.org",
     symbol: "ETH",
   },
+  assetchain: {
+    url: process.env.ASSETCHAIN_MAINNET_RPC_URL ?? "https://mainnet-rpc.assetchain.org",
+    symbol: "RWA",
+  },
+  assetchainTestnet: {
+    url: process.env.ASSETCHAIN_TESTNET_RPC_URL ?? "https://enugu-rpc.assetchain.org",
+    symbol: "RWA",
+  },
 };
 
 const FAUCETS: Record<string, string[]> = {
   testnet: ["https://www.bnbchain.org/en/testnet-faucet", "https://testnet.bnbchain.org/faucet-smart"],
   sepolia: ["https://sepoliafaucet.com/", "https://www.alchemy.com/faucets/ethereum-sepolia"],
   baseSepolia: ["https://www.alchemy.com/faucets/base-sepolia", "https://docs.base.org/network-information#base-testnet-sepolia"],
+  assetchainTestnet: ["https://faucet.assetchain.org"],
 };
 
 function deployerAddress(): string {

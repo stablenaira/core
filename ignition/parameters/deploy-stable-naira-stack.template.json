@@ -51,7 +51,7 @@
       "domainId": 97,
       "deployOracle": true,
       "explorerUrl": "https://testnet.bscscan.com",
-      "peers": ["sepolia", "baseSepolia"]
+      "peers": ["sepolia", "baseSepolia", "assetchainTestnet"]
     },
     "sepolia": {
       "label": "Ethereum Sepolia",
@@ -59,7 +59,7 @@
       "domainId": 11155111,
       "deployOracle": false,
       "explorerUrl": "https://sepolia.etherscan.io",
-      "peers": ["testnet", "baseSepolia"]
+      "peers": ["testnet", "baseSepolia", "assetchainTestnet"]
     },
     "baseSepolia": {
       "label": "Base Sepolia",
@@ -67,7 +67,15 @@
       "domainId": 84532,
       "deployOracle": false,
       "explorerUrl": "https://sepolia.basescan.org",
-      "peers": ["testnet", "sepolia"]
+      "peers": ["testnet", "sepolia", "assetchainTestnet"]
+    },
+    "assetchainTestnet": {
+      "label": "Asset Chain Testnet",
+      "chainId": 42421,
+      "domainId": 42421,
+      "deployOracle": false,
+      "explorerUrl": "https://scan-testnet.assetchain.org",
+      "peers": ["testnet", "sepolia", "baseSepolia"]
     },
     "mainnet": {
       "label": "BSC Mainnet",
@@ -75,7 +83,7 @@
       "domainId": 56,
       "deployOracle": true,
       "explorerUrl": "https://bscscan.com",
-      "peers": ["ethereum", "base"]
+      "peers": ["ethereum", "base", "assetchain"]
     },
     "ethereum": {
       "label": "Ethereum Mainnet",
@@ -83,7 +91,7 @@
       "domainId": 1,
       "deployOracle": false,
       "explorerUrl": "https://etherscan.io",
-      "peers": ["mainnet", "base"]
+      "peers": ["mainnet", "base", "assetchain"]
     },
     "base": {
       "label": "Base Mainnet",
@@ -91,11 +99,19 @@
       "domainId": 8453,
       "deployOracle": false,
       "explorerUrl": "https://basescan.org",
-      "peers": ["mainnet", "ethereum"]
+      "peers": ["mainnet", "ethereum", "assetchain"]
+    },
+    "assetchain": {
+      "label": "Asset Chain Mainnet",
+      "chainId": 42420,
+      "domainId": 42420,
+      "deployOracle": false,
+      "explorerUrl": "https://scan.assetchain.org",
+      "peers": ["mainnet", "ethereum", "base"]
     }
   },
   "deploymentGroups": {
-    "testnet": ["testnet", "sepolia", "baseSepolia"],
-    "mainnet": ["mainnet", "ethereum", "base"]
+    "testnet": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet"],
+    "mainnet": ["mainnet", "ethereum", "base", "assetchain"]
   }
 }

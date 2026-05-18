@@ -48,6 +48,8 @@ const RPCS: Record<string, string> = {
   mainnet: process.env.BSC_MAINNET_RPC_URL ?? "https://bsc-dataseed.binance.org/",
   ethereum: process.env.ETHEREUM_MAINNET_RPC_URL ?? "https://ethereum-rpc.publicnode.com",
   base: process.env.BASE_MAINNET_RPC_URL ?? "https://mainnet.base.org",
+  assetchain: process.env.ASSETCHAIN_MAINNET_RPC_URL ?? "https://mainnet-rpc.assetchain.org",
+  assetchainTestnet: process.env.ASSETCHAIN_TESTNET_RPC_URL ?? "https://enugu-rpc.assetchain.org",
 };
 
 function bytes32FromAddress(addr: string): string {

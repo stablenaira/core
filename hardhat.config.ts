@@ -29,6 +29,11 @@ const POLYGON_MAINNET_RPC = process.env.POLYGON_MAINNET_RPC_URL || "https://poly
 const POLYGON_AMOY_RPC = process.env.POLYGON_AMOY_RPC_URL || "https://rpc-amoy.polygon.technology";
 const POLYGON_MUMBAI_RPC =
   process.env.POLYGON_MUMBAI_RPC_URL || "https://rpc-mumbai.maticvigil.com";
+// Asset Chain (Xend Finance RWA L1) — EVM-compatible, Blockscout explorer.
+const ASSETCHAIN_MAINNET_RPC =
+  process.env.ASSETCHAIN_MAINNET_RPC_URL || "https://mainnet-rpc.assetchain.org";
+const ASSETCHAIN_TESTNET_RPC =
+  process.env.ASSETCHAIN_TESTNET_RPC_URL || "https://enugu-rpc.assetchain.org";
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -106,6 +111,18 @@ const config: HardhatUserConfig = {
       url: POLYGON_MUMBAI_RPC,
       chainId: 80001,
       accounts: [PRIVATE_KEY],
+    },
+    assetchain: {
+      url: ASSETCHAIN_MAINNET_RPC,
+      chainId: 42420,
+      accounts: [PRIVATE_KEY],
+      timeout: 120_000,
+    },
+    assetchainTestnet: {
+      url: ASSETCHAIN_TESTNET_RPC,
+      chainId: 42421,
+      accounts: [PRIVATE_KEY],
+      timeout: 120_000,
     },
   },
   // String api key enables Etherscan API v2 (chainid sent on every request). Object keys force v1 and break
@@ -207,6 +224,26 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.etherscan.io/v2/api",
           browserURL: "https://mumbai.polygonscan.com",
+        },
+      },
+      // Asset Chain runs Blockscout (not Etherscan). Blockscout exposes an
+      // Etherscan-compatible verification API at <explorer>/api and ignores the
+      // API key. `hardhat verify` works against it; Sourcify (enabled below)
+      // is the reliable fallback since Blockscout indexes Sourcify matches.
+      {
+        network: "assetchain",
+        chainId: 42420,
+        urls: {
+          apiURL: "https://scan.assetchain.org/api",
+          browserURL: "https://scan.assetchain.org",
+        },
+      },
+      {
+        network: "assetchainTestnet",
+        chainId: 42421,
+        urls: {
+          apiURL: "https://scan-testnet.assetchain.org/api",
+          browserURL: "https://scan-testnet.assetchain.org",
         },
       },
     ],
