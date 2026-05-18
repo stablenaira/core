@@ -4234,6 +4234,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "base64 0.22.1",
  "libsecp256k1 0.7.2",
  "litesvm",
  "message_transmitter",
