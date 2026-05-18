@@ -22,11 +22,11 @@ describe("Phase 7 — hardening", () => {
 
   it("MessageTransmitter has the timelocked set_code upgrade wired (owner/timelock/hash gated)", async () => {
     const mt = chain.openContract(
-      await MessageTransmitter.fromInit(owner.address, 1_000_001n, 1_000_001n, 0xabcn, 256n),
+      await MessageTransmitter.fromInit(owner.address, 100n, 100n, 0xabcn, 256n),
     );
     await mt.send(owner.getSender(), { value: toNano("0.2") }, EMPTY_SLICE);
     const selfCode = (await MessageTransmitter.fromInit(
-      owner.address, 1_000_001n, 1_000_001n, 0xabcn, 256n,
+      owner.address, 100n, 100n, 0xabcn, 256n,
     )).init!.code;
     const codeHash = BigInt(`0x${selfCode.hash().toString("hex")}`);
 
@@ -55,7 +55,7 @@ describe("Phase 7 — hardening", () => {
 
     expect(await mt.getUpgradePendingHash()).toBe(0n);
     expect(await mt.getVersionValue()).toBe(1n); // still operational post-swap
-    expect(await mt.getLocalDomainValue()).toBe(1_000_001n);
+    expect(await mt.getLocalDomainValue()).toBe(100n);
   });
 
   it("TokenMessenger CancelIntent reaps an intent leaked by a downstream burn failure", async () => {

@@ -6,8 +6,8 @@ import "@ton/test-utils";
 import { MessageTransmitter } from "../build/MessageTransmitter/tact_MessageTransmitter";
 import { MockMessageHandler } from "../build/MockMessageHandler/tact_MockMessageHandler";
 
-const LOCAL_DOMAIN = 1_000_001n; // TON CCTP domain
-const CHAIN_ID = 1_000_001n;
+const LOCAL_DOMAIN = 100n; // TON CCTP domain
+const CHAIN_ID = 100n;
 const TRANSMITTER_ID = 0xabcdef0123456789abcdef0123456789abcdef01n; // uint160
 const TYPEHASH = BigInt(
   "0x731f85be2e4340e902daed2c56af57379484e7c4b0a3b22a5e4ca8fbda070351",

@@ -14,8 +14,8 @@ import { ValidatorRegistry } from "../build/ValidatorRegistry/tact_ValidatorRegi
 // syncs the set into the MessageTransmitter mirror). Live-testnet smoke is a
 // deployment step (needs funded keys / RPC) and is gated separately.
 
-const TON_DOMAIN = 1_000_001n;
-const TON_CHAINID = 1_000_001n;
+const TON_DOMAIN = 100n;
+const TON_CHAINID = 100n;
 const TON_TX_ID = 0xa11ce0000000000000000000000000000000b0bn; // uint160 binding
 const EVM_DOMAIN = 84_532n; // Base Sepolia
 const EVM_CHAINID = 84_532n;
