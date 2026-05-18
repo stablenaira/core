@@ -83,6 +83,14 @@ message(0x534e5209) MasterBurn { account: Address; amount: Int as coins }   // b
 message(0x534e520A) RedeemRequest { amount: Int as coins; offChainRef: Cell }
 message(0x534e520B) RedeemNotification { amount: Int as coins; owner: Address; offChainRef: Cell }
 
+// bridge burn callback path (Phase 4): minter burns a holder's balance and
+// the master acks the requester so the bridge can emit its CCTP message only
+// after a confirmed burn (burn->message atomicity on async TON).
+message(0x534e5220) BridgeBurn { opId: Int as uint64; amount: Int as coins; from: Address }
+message(0x534e5221) WalletBridgeBurn { amount: Int as coins; opId: Int as uint64; requester: Address }
+message(0x534e5222) BridgeBurnNotification { amount: Int as coins; owner: Address; opId: Int as uint64; requester: Address }
+message(0x534e5223) BridgeBurnAck { opId: Int as uint64; amount: Int as coins }
+
 // wallet-internal authenticated ops
 message(0x534e5210) SetWalletFrozen { frozen: Bool }
 message(0x534e5211) WalletMasterBurn { queryId: Int as uint64; amount: Int as coins }
@@ -265,6 +273,37 @@ contract StableNairaJettonMaster {
             mode: SendRemainingValue,
             bounce: true,
             body: WalletMasterBurn{ queryId: 0, amount: msg.amount }.toCell(),
+        });
+    }
+
+    // bridge burn: minter-gated, whenNotPaused, respects freeze (wallet path)
+    receive(msg: BridgeBurn) {
+        self.requireMinter();
+        require(!self.paused, "paused");
+        require(msg.amount > 0, "amount=0");
+        send(SendParameters{
+            to: self.walletAddr(msg.from),
+            value: 0,
+            mode: SendRemainingValue,
+            bounce: true,
+            body: WalletBridgeBurn{
+                amount: msg.amount,
+                opId: msg.opId,
+                requester: sender(),
+            }.toCell(),
+        });
+    }
+
+    // wallet confirmed a bridge burn — reduce supply, ack the requester
+    receive(msg: BridgeBurnNotification) {
+        require(sender() == self.walletAddr(msg.owner), "not wallet");
+        self.totalSupply = self.totalSupply - msg.amount;
+        send(SendParameters{
+            to: msg.requester,
+            value: 0,
+            mode: SendRemainingValue,
+            bounce: true,
+            body: BridgeBurnAck{ opId: msg.opId, amount: msg.amount }.toCell(),
         });
     }
 
@@ -480,6 +519,27 @@ contract StableNairaJettonWallet {
                 amount: msg.amount,
                 owner: self.owner,
                 responseDestination: self.master,
+            }.toCell(),
+        });
+    }
+
+    // bridge burn: master-authenticated, respects freeze (burnFrom parity).
+    // On success, notify master which reduces supply and acks the requester.
+    receive(msg: WalletBridgeBurn) {
+        require(sender() == self.master, "not master");
+        require(!self.frozen, "frozen");
+        require(self.balance >= msg.amount, "balance");
+        self.balance = self.balance - msg.amount;
+        send(SendParameters{
+            to: self.master,
+            value: 0,
+            mode: SendRemainingValue,
+            bounce: true,
+            body: BridgeBurnNotification{
+                amount: msg.amount,
+                owner: self.owner,
+                opId: msg.opId,
+                requester: msg.requester,
             }.toCell(),
         });
     }
