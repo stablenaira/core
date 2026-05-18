@@ -37,6 +37,7 @@ message(0x544d0101) SetMessageTransmitter { messageTransmitter: Address }
 message(0x544d0102) SetLocalToken { localToken: Address }
 message(0x544d0103) SetRemoteRouter { domain: Int as uint32; router: Int as uint256 }
 message(0x544d0104) SetFeeConfig { feeBps: Int as uint16; feeRecipient: Address }
+message(0x544d0105) CancelIntent { opId: Int as uint64 }
 message(0x544d0110) DepositForBurn {
     amount: Int as coins;
     destinationDomain: Int as uint32;
@@ -91,6 +92,14 @@ contract TokenMessenger {
         self.onlyOwner();
         self.feeBps = msg.feeBps;
         self.feeRecipient = msg.feeRecipient;
+    }
+
+    // intent GC: reap an intent leaked by a *downstream* burn failure
+    // (master→wallet bounce can't reach this contract). Owner-only; safe
+    // because no CCTP message is ever emitted without a BridgeBurnAck.
+    receive(msg: CancelIntent) {
+        self.onlyOwner();
+        self.intents.set(msg.opId, null);
     }
 
     // ---- depositForBurn (burn-then-message via callback) ----

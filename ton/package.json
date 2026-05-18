@@ -4,6 +4,9 @@
   "private": true,
   "description": "StableNaira (SNR) Jetton + CCTP burn-and-mint stack on TON",
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "blueprint build --all",
     "test": "jest --runInBand",

@@ -24,6 +24,7 @@
 struct PubKey { h: Int; x1: Int; x2: Int }
 
 asm fun ecrecoverRaw(hash: Int, v: Int, r: Int, s: Int): PubKey { ECRECOVER DROP }
+asm fun tvmSetCode(code: Cell) { SETCODE }
 asm fun kc1(a: Slice): Int { 1 PUSHINT HASHEXT_KECCAK256 }
 asm fun kc2(a: Slice, b: Slice): Int { 2 PUSHINT HASHEXT_KECCAK256 }
 asm fun kc3(a: Slice, b: Slice, c: Slice): Int { 3 PUSHINT HASHEXT_KECCAK256 }
@@ -36,10 +37,15 @@ const ADDR_MASK: Int = 1461501637330902918203684832716283019655932542975;
 const ATTESTATION_TYPEHASH: Int = 52071672905609786405512957009521980421282899230143005476001486625159120356177;
 const ENVELOPE_VERSION: Int = 1;
 const MIN_MAX_BODY_SIZE: Int = 132;
+const UPGRADE_TIMELOCK: Int = 3600; // 1h, EVM UUPS-timelock parity
 
 message(0x564c5201) SyncAddValidator { validator: Int as uint256 }
 message(0x564c5202) SyncRemoveValidator { validator: Int as uint256 }
 message(0x564c5203) SyncSetThreshold { newThreshold: Int as uint32 }
+
+message(0x55504700) QueueUpgrade { codeHash: Int as uint256 }
+message(0x55504701) CommitUpgrade { code: Cell }
+message(0x55504702) CancelUpgrade {}
 
 message(0x4d540100) SetRegistry { registry: Address }
 message(0x4d540101) MtSetPaused { paused: Bool }
@@ -74,6 +80,8 @@ contract MessageTransmitter {
     threshold: Int as uint32;
     validators: map<Int, Bool>;
     usedNonces: map<Int, Bool>;    // key = (sourceDomain << 64) | nonce
+    upgradeCodeHash: Int as uint256;
+    upgradeEta: Int as uint32;
 
     init(owner: Address, localDomain: Int, chainId: Int, transmitterId: Int, maxBodySize: Int) {
         require(localDomain != 0, "zero localDomain");
@@ -87,6 +95,8 @@ contract MessageTransmitter {
         self.maxBodySize = maxBodySize;
         self.paused = false;
         self.threshold = 0;
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
     }
 
     fun onlyOwner() { require(sender() == self.owner, "not owner") }
@@ -107,6 +117,27 @@ contract MessageTransmitter {
     receive(msg: SyncSetThreshold) {
         require(sender() == self.registry, "not registry");
         self.threshold = msg.newThreshold;
+    }
+
+    // ---- timelocked set_code upgrade (EVM UUPS + timelock parity) ----
+    receive(msg: QueueUpgrade) {
+        self.onlyOwner();
+        require(msg.codeHash != 0, "zero codeHash");
+        self.upgradeCodeHash = msg.codeHash;
+        self.upgradeEta = now() + UPGRADE_TIMELOCK;
+    }
+    receive(msg: CancelUpgrade) {
+        self.onlyOwner();
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
+    }
+    receive(msg: CommitUpgrade) {
+        require(self.upgradeCodeHash != 0, "no upgrade");
+        require(now() >= self.upgradeEta, "timelock");
+        require(msg.code.hash() == self.upgradeCodeHash, "code mismatch");
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
+        tvmSetCode(msg.code);
     }
 
     receive(msg: MtSetPaused) { self.onlyOwner(); self.paused = msg.paused }
@@ -280,4 +311,6 @@ contract MessageTransmitter {
     get fun thresholdValue(): Int { return self.threshold }
     get fun isValidator(a: Int): Bool { return self.validators.get(a) == true }
     get fun versionValue(): Int { return ENVELOPE_VERSION }
+    get fun upgradePendingHash(): Int { return self.upgradeCodeHash }
+    get fun upgradeEtaValue(): Int { return self.upgradeEta }
 }
