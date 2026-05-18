@@ -4329,6 +4329,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "validator_registry"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "libsecp256k1 0.7.2",
+ "litesvm",
+ "solana-instruction",
+ "solana-keccak-hasher",
+ "solana-keypair",
+ "solana-message",
+ "solana-pubkey 3.0.0",
+ "solana-secp256k1-recover",
+ "solana-signer",
+ "solana-transaction",
+ "tiny-keccak",
+]
+
+[[package]]
 name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

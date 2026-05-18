@@ -8,6 +8,7 @@ skip-lint = false
 [programs.localnet]
 crypto_parity = "6VHLvJDTt5vCmPgPfa2PgW4TXsWFgbUSAbiesfYFa2h6"
 stable_naira = "BYB7RM7d4WeUWJd6xXDFZFqAEbbDa2Ezt718hpZG3eoG"
+validator_registry = "845CkeSs9ZsXGEgqw53zZ1hrWthj7iHFKUVsemsYWL4C"
 
 [provider]
 cluster = "localnet"
