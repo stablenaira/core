@@ -39,6 +39,13 @@ struct Change {
 }
 
 const DEFAULT_TIMELOCK: Int = 3600; // 1 hour, mirrors EVM default
+const UPGRADE_TIMELOCK: Int = 3600; // set_code timelock floor (EVM UUPS parity)
+
+asm fun tvmSetCode(code: Cell) { SETCODE }
+
+message(0x55504700) QueueUpgrade { codeHash: Int as uint256 }
+message(0x55504701) CommitUpgrade { code: Cell }
+message(0x55504702) CancelUpgrade {}
 
 contract ValidatorRegistry {
     owner: Address;
@@ -51,6 +58,8 @@ contract ValidatorRegistry {
     nextActionId: Int as uint64;
     validators: map<Int, Bool>;
     changes: map<Int, Change>;
+    upgradeCodeHash: Int as uint256;
+    upgradeEta: Int as uint32;
 
     init(owner: Address, timelock: Int, minTimelock: Int) {
         self.owner = owner;
@@ -65,6 +74,8 @@ contract ValidatorRegistry {
         self.validatorCount = 0;
         self.finalized = false;
         self.nextActionId = 0;
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
     }
 
     fun onlyOwner() { require(sender() == self.owner, "not owner") }
@@ -210,9 +221,31 @@ contract ValidatorRegistry {
         if (self.timelock < msg.newMin) { self.timelock = msg.newMin }
     }
 
+    // ---- timelocked set_code upgrade (EVM UUPS + timelock parity) ----
+    receive(msg: QueueUpgrade) {
+        self.onlyOwner();
+        require(msg.codeHash != 0, "zero codeHash");
+        self.upgradeCodeHash = msg.codeHash;
+        self.upgradeEta = now() + UPGRADE_TIMELOCK;
+    }
+    receive(msg: CancelUpgrade) {
+        self.onlyOwner();
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
+    }
+    receive(msg: CommitUpgrade) {
+        require(self.upgradeCodeHash != 0, "no upgrade");
+        require(now() >= self.upgradeEta, "timelock");
+        require(msg.code.hash() == self.upgradeCodeHash, "code mismatch");
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
+        tvmSetCode(msg.code);
+    }
+
     receive(_: Slice) {}
 
     get fun isValidator(a: Int): Bool { return self.isMember(a) }
+    get fun upgradePendingHash(): Int { return self.upgradeCodeHash }
     get fun validatorCountValue(): Int { return self.validatorCount }
     get fun thresholdValue(): Int { return self.threshold }
     get fun isFinalized(): Bool { return self.finalized }

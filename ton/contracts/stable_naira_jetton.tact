@@ -97,6 +97,22 @@ message(0x534e5211) WalletMasterBurn { queryId: Int as uint64; amount: Int as co
 message(0x534e5212) ForceTransfer { to: Address; amount: Int as coins }
 message(0x534e5213) ForceCredit { amount: Int as coins; from: Address }
 
+// timelocked set_code upgrade (EVM UUPS + timelock parity)
+asm fun tvmSetCode(code: Cell) { SETCODE }
+const UPGRADE_TIMELOCK: Int = 3600; // 1h floor
+
+// master self-upgrade
+message(0x55504700) QueueUpgrade { codeHash: Int as uint256 }
+message(0x55504701) CommitUpgrade { code: Cell }
+message(0x55504702) CancelUpgrade {}
+// master-governed wallet-code upgrade (master holds the canonical wallet code)
+message(0x55504710) QueueWalletUpgrade { codeHash: Int as uint256 }
+message(0x55504711) CommitWalletUpgrade { code: Cell }
+message(0x55504712) CancelWalletUpgrade {}
+message(0x55504713) PushWalletUpgrade { wallet: Address; code: Cell }
+// master -> wallet authenticated code swap
+message(0x55504714) UpgradeWalletCode { code: Cell }
+
 struct JettonData {
     totalSupply: Int as coins;
     mintable: Bool;
@@ -132,6 +148,11 @@ contract StableNairaJettonMaster {
     pausers: map<Address, Bool>;
     freezers: map<Address, Bool>;
     seizers: map<Address, Bool>;
+    upgradeCodeHash: Int as uint256;
+    upgradeEta: Int as uint32;
+    walletPendingHash: Int as uint256;
+    walletPendingEta: Int as uint32;
+    blessedWalletCodeHash: Int as uint256; // 0 until first wallet upgrade
 
     init(admin: Address, content: Cell, mintCap: Int) {
         self.admin = admin;
@@ -139,6 +160,11 @@ contract StableNairaJettonMaster {
         self.mintCap = mintCap;
         self.totalSupply = 0;
         self.paused = false;
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
+        self.walletPendingHash = 0;
+        self.walletPendingEta = 0;
+        self.blessedWalletCodeHash = 0;
     }
 
     // ---- internal helpers ----
@@ -349,6 +375,61 @@ contract StableNairaJettonMaster {
         });
     }
 
+    // ---- master self set_code upgrade ----
+    receive(msg: QueueUpgrade) {
+        self.requireAdmin();
+        require(msg.codeHash != 0, "zero codeHash");
+        self.upgradeCodeHash = msg.codeHash;
+        self.upgradeEta = now() + UPGRADE_TIMELOCK;
+    }
+    receive(msg: CancelUpgrade) {
+        self.requireAdmin();
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
+    }
+    receive(msg: CommitUpgrade) {
+        require(self.upgradeCodeHash != 0, "no upgrade");
+        require(now() >= self.upgradeEta, "timelock");
+        require(msg.code.hash() == self.upgradeCodeHash, "code mismatch");
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
+        tvmSetCode(msg.code);
+    }
+
+    // ---- master-governed wallet-code upgrade ----
+    receive(msg: QueueWalletUpgrade) {
+        self.requireAdmin();
+        require(msg.codeHash != 0, "zero codeHash");
+        self.walletPendingHash = msg.codeHash;
+        self.walletPendingEta = now() + UPGRADE_TIMELOCK;
+    }
+    receive(msg: CancelWalletUpgrade) {
+        self.requireAdmin();
+        self.walletPendingHash = 0;
+        self.walletPendingEta = 0;
+    }
+    receive(msg: CommitWalletUpgrade) {
+        require(self.walletPendingHash != 0, "no upgrade");
+        require(now() >= self.walletPendingEta, "timelock");
+        require(msg.code.hash() == self.walletPendingHash, "code mismatch");
+        self.blessedWalletCodeHash = self.walletPendingHash;
+        self.walletPendingHash = 0;
+        self.walletPendingEta = 0;
+    }
+    // lazy per-wallet rollout; only the blessed code can be pushed
+    receive(msg: PushWalletUpgrade) {
+        self.requireAdmin();
+        require(self.blessedWalletCodeHash != 0, "no blessed code");
+        require(msg.code.hash() == self.blessedWalletCodeHash, "code not blessed");
+        send(SendParameters{
+            to: msg.wallet,
+            value: 0,
+            mode: SendRemainingValue,
+            bounce: true,
+            body: UpgradeWalletCode{ code: msg.code }.toCell(),
+        });
+    }
+
     receive(_: Slice) {}   // accept plain transfers / deploy
 
     // ---- getters (TEP-74 + parity) ----
@@ -372,6 +453,9 @@ contract StableNairaJettonMaster {
     get fun isPauser(a: Address): Bool { return self.hasRole(self.pausers, a) }
     get fun isFreezer(a: Address): Bool { return self.hasRole(self.freezers, a) }
     get fun isSeizer(a: Address): Bool { return self.hasRole(self.seizers, a) }
+    get fun upgradePendingHash(): Int { return self.upgradeCodeHash }
+    get fun walletUpgradePendingHash(): Int { return self.walletPendingHash }
+    get fun blessedWalletHash(): Int { return self.blessedWalletCodeHash }
 }
 
 // ------------------------------ Wallet ------------------------------------
@@ -565,6 +649,15 @@ contract StableNairaJettonWallet {
     receive(msg: ForceCredit) {
         require(sender() == self.expectedWallet(msg.from), "bad source");
         self.balance = self.balance + msg.amount;
+    }
+
+    // master-authenticated code swap (master only sends the blessed code,
+    // after its own timelocked CommitWalletUpgrade). Wallet ADDRESS is
+    // unchanged — it is derived from the immutable initial StateInit; only
+    // the running code is swapped, so c4 (balance/owner/frozen) is preserved.
+    receive(msg: UpgradeWalletCode) {
+        require(sender() == self.master, "not master");
+        tvmSetCode(msg.code);
     }
 
     receive(_: Slice) {}

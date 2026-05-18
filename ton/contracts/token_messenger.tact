@@ -56,6 +56,13 @@ struct Intent {
 
 const BODY_VERSION: Int = 1;
 const BPS_DENOMINATOR: Int = 10000;
+const UPGRADE_TIMELOCK: Int = 3600; // set_code timelock floor (EVM UUPS parity)
+
+asm fun tvmSetCode(code: Cell) { SETCODE }
+
+message(0x55504700) QueueUpgrade { codeHash: Int as uint256 }
+message(0x55504701) CommitUpgrade { code: Cell }
+message(0x55504702) CancelUpgrade {}
 
 contract TokenMessenger {
     owner: Address;
@@ -67,6 +74,8 @@ contract TokenMessenger {
     nextOpId: Int as uint64;
     remoteRouters: map<Int, Int>; // domain -> router account id (uint256)
     intents: map<Int, Intent>;
+    upgradeCodeHash: Int as uint256;
+    upgradeEta: Int as uint32;
 
     init(owner: Address, messageTransmitter: Address, localToken: Address, feeBps: Int, feeRecipient: Address) {
         self.owner = owner;
@@ -76,6 +85,8 @@ contract TokenMessenger {
         self.feeRecipient = feeRecipient;
         self.paused = false;
         self.nextOpId = 0;
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
     }
 
     fun onlyOwner() { require(sender() == self.owner, "not owner") }
@@ -203,8 +214,30 @@ contract TokenMessenger {
         });
     }
 
+    // ---- timelocked set_code upgrade (EVM UUPS + timelock parity) ----
+    receive(msg: QueueUpgrade) {
+        self.onlyOwner();
+        require(msg.codeHash != 0, "zero codeHash");
+        self.upgradeCodeHash = msg.codeHash;
+        self.upgradeEta = now() + UPGRADE_TIMELOCK;
+    }
+    receive(msg: CancelUpgrade) {
+        self.onlyOwner();
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
+    }
+    receive(msg: CommitUpgrade) {
+        require(self.upgradeCodeHash != 0, "no upgrade");
+        require(now() >= self.upgradeEta, "timelock");
+        require(msg.code.hash() == self.upgradeCodeHash, "code mismatch");
+        self.upgradeCodeHash = 0;
+        self.upgradeEta = 0;
+        tvmSetCode(msg.code);
+    }
+
     receive(_: Slice) {}
 
+    get fun upgradePendingHash(): Int { return self.upgradeCodeHash }
     get fun remoteRouter(domain: Int): Int {
         let r: Int? = self.remoteRouters.get(domain);
         if (r == null) { return 0 }
