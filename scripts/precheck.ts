@@ -56,6 +56,14 @@ const RPCS: Record<string, RpcConfig> = {
     url: process.env.ASSETCHAIN_TESTNET_RPC_URL ?? "https://enugu-rpc.assetchain.org",
     symbol: "RWA",
   },
+  polygon: {
+    url: process.env.POLYGON_MAINNET_RPC_URL ?? "https://polygon-rpc.com",
+    symbol: "POL",
+  },
+  polygonAmoy: {
+    url: process.env.POLYGON_AMOY_RPC_URL ?? "https://rpc-amoy.polygon.technology",
+    symbol: "POL",
+  },
 };
 
 const FAUCETS: Record<string, string[]> = {
@@ -63,6 +71,7 @@ const FAUCETS: Record<string, string[]> = {
   sepolia: ["https://sepoliafaucet.com/", "https://www.alchemy.com/faucets/ethereum-sepolia"],
   baseSepolia: ["https://www.alchemy.com/faucets/base-sepolia", "https://docs.base.org/network-information#base-testnet-sepolia"],
   assetchainTestnet: ["https://faucet.assetchain.org"],
+  polygonAmoy: ["https://faucet.polygon.technology/"],
 };
 
 function deployerAddress(): string {

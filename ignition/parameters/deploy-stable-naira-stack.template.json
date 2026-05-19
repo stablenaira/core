@@ -51,7 +51,7 @@
       "domainId": 97,
       "deployOracle": true,
       "explorerUrl": "https://testnet.bscscan.com",
-      "peers": ["sepolia", "baseSepolia", "assetchainTestnet"]
+      "peers": ["sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy"]
     },
     "sepolia": {
       "label": "Ethereum Sepolia",
@@ -59,7 +59,7 @@
       "domainId": 11155111,
       "deployOracle": false,
       "explorerUrl": "https://sepolia.etherscan.io",
-      "peers": ["testnet", "baseSepolia", "assetchainTestnet"]
+      "peers": ["testnet", "baseSepolia", "assetchainTestnet", "polygonAmoy"]
     },
     "baseSepolia": {
       "label": "Base Sepolia",
@@ -67,7 +67,7 @@
       "domainId": 84532,
       "deployOracle": false,
       "explorerUrl": "https://sepolia.basescan.org",
-      "peers": ["testnet", "sepolia", "assetchainTestnet"]
+      "peers": ["testnet", "sepolia", "assetchainTestnet", "polygonAmoy"]
     },
     "assetchainTestnet": {
       "label": "Asset Chain Testnet",
@@ -75,7 +75,15 @@
       "domainId": 42421,
       "deployOracle": false,
       "explorerUrl": "https://scan-testnet.assetchain.org",
-      "peers": ["testnet", "sepolia", "baseSepolia"]
+      "peers": ["testnet", "sepolia", "baseSepolia", "polygonAmoy"]
+    },
+    "polygonAmoy": {
+      "label": "Polygon Amoy",
+      "chainId": 80002,
+      "domainId": 80002,
+      "deployOracle": false,
+      "explorerUrl": "https://amoy.polygonscan.com",
+      "peers": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet"]
     },
     "mainnet": {
       "label": "BSC Mainnet",
@@ -83,7 +91,7 @@
       "domainId": 56,
       "deployOracle": true,
       "explorerUrl": "https://bscscan.com",
-      "peers": ["ethereum", "base", "assetchain"]
+      "peers": ["ethereum", "base", "assetchain", "polygon"]
     },
     "ethereum": {
       "label": "Ethereum Mainnet",
@@ -91,7 +99,7 @@
       "domainId": 1,
       "deployOracle": false,
       "explorerUrl": "https://etherscan.io",
-      "peers": ["mainnet", "base", "assetchain"]
+      "peers": ["mainnet", "base", "assetchain", "polygon"]
     },
     "base": {
       "label": "Base Mainnet",
@@ -99,7 +107,7 @@
       "domainId": 8453,
       "deployOracle": false,
       "explorerUrl": "https://basescan.org",
-      "peers": ["mainnet", "ethereum", "assetchain"]
+      "peers": ["mainnet", "ethereum", "assetchain", "polygon"]
     },
     "assetchain": {
       "label": "Asset Chain Mainnet",
@@ -107,11 +115,19 @@
       "domainId": 42420,
       "deployOracle": false,
       "explorerUrl": "https://scan.assetchain.org",
-      "peers": ["mainnet", "ethereum", "base"]
+      "peers": ["mainnet", "ethereum", "base", "polygon"]
+    },
+    "polygon": {
+      "label": "Polygon PoS Mainnet",
+      "chainId": 137,
+      "domainId": 137,
+      "deployOracle": false,
+      "explorerUrl": "https://polygonscan.com",
+      "peers": ["mainnet", "ethereum", "base", "assetchain"]
     }
   },
   "deploymentGroups": {
-    "testnet": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet"],
-    "mainnet": ["mainnet", "ethereum", "base", "assetchain"]
+    "testnet": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy"],
+    "mainnet": ["mainnet", "ethereum", "base", "assetchain", "polygon"]
   }
 }

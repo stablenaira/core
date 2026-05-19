@@ -50,6 +50,8 @@ const RPCS: Record<string, string> = {
   base: process.env.BASE_MAINNET_RPC_URL ?? "https://mainnet.base.org",
   assetchain: process.env.ASSETCHAIN_MAINNET_RPC_URL ?? "https://mainnet-rpc.assetchain.org",
   assetchainTestnet: process.env.ASSETCHAIN_TESTNET_RPC_URL ?? "https://enugu-rpc.assetchain.org",
+  polygon: process.env.POLYGON_MAINNET_RPC_URL ?? "https://polygon-rpc.com",
+  polygonAmoy: process.env.POLYGON_AMOY_RPC_URL ?? "https://rpc-amoy.polygon.technology",
 };
 
 function bytes32FromAddress(addr: string): string {
