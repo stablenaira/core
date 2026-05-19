@@ -1,0 +1,22 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+crypto_parity = "6VHLvJDTt5vCmPgPfa2PgW4TXsWFgbUSAbiesfYFa2h6"
+message_transmitter = "5mwNZ7p4auAjpGobZxePz5GxtrNosN7UTQeqBnz4s725"
+stable_naira = "BYB7RM7d4WeUWJd6xXDFZFqAEbbDa2Ezt718hpZG3eoG"
+token_messenger = "ArDyHzc7LnyzvpmXJCabQUWCTWAbw9AgxbWQFA9SSxK8"
+validator_registry = "845CkeSs9ZsXGEgqw53zZ1hrWthj7iHFKUVsemsYWL4C"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]
