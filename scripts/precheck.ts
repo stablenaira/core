@@ -64,6 +64,14 @@ const RPCS: Record<string, RpcConfig> = {
     url: process.env.POLYGON_AMOY_RPC_URL ?? "https://rpc-amoy.polygon.technology",
     symbol: "POL",
   },
+  avalanche: {
+    url: process.env.AVALANCHE_MAINNET_RPC_URL ?? "https://api.avax.network/ext/bc/C/rpc",
+    symbol: "AVAX",
+  },
+  avalancheFuji: {
+    url: process.env.AVALANCHE_FUJI_RPC_URL ?? "https://api.avax-test.network/ext/bc/C/rpc",
+    symbol: "AVAX",
+  },
 };
 
 const FAUCETS: Record<string, string[]> = {
@@ -72,6 +80,7 @@ const FAUCETS: Record<string, string[]> = {
   baseSepolia: ["https://www.alchemy.com/faucets/base-sepolia", "https://docs.base.org/network-information#base-testnet-sepolia"],
   assetchainTestnet: ["https://faucet.assetchain.org"],
   polygonAmoy: ["https://faucet.polygon.technology/"],
+  avalancheFuji: ["https://faucet.avax.network/", "https://core.app/tools/testnet-faucet/"],
 };
 
 function deployerAddress(): string {

@@ -52,6 +52,8 @@ const RPCS: Record<string, string> = {
   assetchainTestnet: process.env.ASSETCHAIN_TESTNET_RPC_URL ?? "https://enugu-rpc.assetchain.org",
   polygon: process.env.POLYGON_MAINNET_RPC_URL ?? "https://polygon-rpc.com",
   polygonAmoy: process.env.POLYGON_AMOY_RPC_URL ?? "https://rpc-amoy.polygon.technology",
+  avalanche: process.env.AVALANCHE_MAINNET_RPC_URL ?? "https://api.avax.network/ext/bc/C/rpc",
+  avalancheFuji: process.env.AVALANCHE_FUJI_RPC_URL ?? "https://api.avax-test.network/ext/bc/C/rpc",
 };
 
 function bytes32FromAddress(addr: string): string {

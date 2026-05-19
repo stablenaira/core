@@ -34,6 +34,12 @@ const ASSETCHAIN_MAINNET_RPC =
   process.env.ASSETCHAIN_MAINNET_RPC_URL || "https://mainnet-rpc.assetchain.org";
 const ASSETCHAIN_TESTNET_RPC =
   process.env.ASSETCHAIN_TESTNET_RPC_URL || "https://enugu-rpc.assetchain.org";
+// Avalanche C-Chain — EVM-compatible, deterministic instant finality (no
+// reorgs once accepted). Snowtrace verification via the Etherscan V2 API.
+const AVALANCHE_MAINNET_RPC =
+  process.env.AVALANCHE_MAINNET_RPC_URL || "https://api.avax.network/ext/bc/C/rpc";
+const AVALANCHE_FUJI_RPC =
+  process.env.AVALANCHE_FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -121,6 +127,17 @@ const config: HardhatUserConfig = {
     assetchainTestnet: {
       url: ASSETCHAIN_TESTNET_RPC,
       chainId: 42421,
+      accounts: [PRIVATE_KEY],
+      timeout: 120_000,
+    },
+    avalanche: {
+      url: AVALANCHE_MAINNET_RPC,
+      chainId: 43114,
+      accounts: [PRIVATE_KEY],
+    },
+    avalancheFuji: {
+      url: AVALANCHE_FUJI_RPC,
+      chainId: 43113,
       accounts: [PRIVATE_KEY],
       timeout: 120_000,
     },
@@ -244,6 +261,22 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://scan-testnet.assetchain.org/api",
           browserURL: "https://scan-testnet.assetchain.org",
+        },
+      },
+      {
+        network: "avalanche",
+        chainId: 43114,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://snowtrace.io",
+        },
+      },
+      {
+        network: "avalancheFuji",
+        chainId: 43113,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://testnet.snowtrace.io",
         },
       },
     ],
