@@ -72,6 +72,14 @@ const RPCS: Record<string, RpcConfig> = {
     url: process.env.AVALANCHE_FUJI_RPC_URL ?? "https://api.avax-test.network/ext/bc/C/rpc",
     symbol: "AVAX",
   },
+  arbitrum: {
+    url: process.env.ARBITRUM_MAINNET_RPC_URL ?? "https://arb1.arbitrum.io/rpc",
+    symbol: "ETH",
+  },
+  arbitrumSepolia: {
+    url: process.env.ARBITRUM_SEPOLIA_RPC_URL ?? "https://sepolia-rollup.arbitrum.io/rpc",
+    symbol: "ETH",
+  },
 };
 
 const FAUCETS: Record<string, string[]> = {
@@ -81,6 +89,7 @@ const FAUCETS: Record<string, string[]> = {
   assetchainTestnet: ["https://faucet.assetchain.org"],
   polygonAmoy: ["https://faucet.polygon.technology/"],
   avalancheFuji: ["https://faucet.avax.network/", "https://core.app/tools/testnet-faucet/"],
+  arbitrumSepolia: ["https://www.alchemy.com/faucets/arbitrum-sepolia", "https://faucet.quicknode.com/arbitrum/sepolia"],
 };
 
 function deployerAddress(): string {
