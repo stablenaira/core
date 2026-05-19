@@ -40,6 +40,12 @@ const AVALANCHE_MAINNET_RPC =
   process.env.AVALANCHE_MAINNET_RPC_URL || "https://api.avax.network/ext/bc/C/rpc";
 const AVALANCHE_FUJI_RPC =
   process.env.AVALANCHE_FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
+// Optimism (OP Stack L2) — EVM-compatible, L1-derived finality (same profile
+// as Base, which is itself OP Stack). Optimistic Etherscan via Etherscan V2.
+const OPTIMISM_MAINNET_RPC =
+  process.env.OPTIMISM_MAINNET_RPC_URL || "https://mainnet.optimism.io";
+const OPTIMISM_SEPOLIA_RPC =
+  process.env.OPTIMISM_SEPOLIA_RPC_URL || "https://sepolia.optimism.io";
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -138,6 +144,17 @@ const config: HardhatUserConfig = {
     avalancheFuji: {
       url: AVALANCHE_FUJI_RPC,
       chainId: 43113,
+      accounts: [PRIVATE_KEY],
+      timeout: 120_000,
+    },
+    optimism: {
+      url: OPTIMISM_MAINNET_RPC,
+      chainId: 10,
+      accounts: [PRIVATE_KEY],
+    },
+    optimismSepolia: {
+      url: OPTIMISM_SEPOLIA_RPC,
+      chainId: 11155420,
       accounts: [PRIVATE_KEY],
       timeout: 120_000,
     },
@@ -277,6 +294,22 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.etherscan.io/v2/api",
           browserURL: "https://testnet.snowtrace.io",
+        },
+      },
+      {
+        network: "optimism",
+        chainId: 10,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://optimistic.etherscan.io",
+        },
+      },
+      {
+        network: "optimismSepolia",
+        chainId: 11155420,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://sepolia-optimism.etherscan.io",
         },
       },
     ],

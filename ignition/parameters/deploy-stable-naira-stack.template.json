@@ -51,7 +51,7 @@
       "domainId": 97,
       "deployOracle": true,
       "explorerUrl": "https://testnet.bscscan.com",
-      "peers": ["sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "arbitrumSepolia"]
+      "peers": ["sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "arbitrumSepolia", "optimismSepolia"]
     },
     "sepolia": {
       "label": "Ethereum Sepolia",
@@ -59,7 +59,7 @@
       "domainId": 11155111,
       "deployOracle": false,
       "explorerUrl": "https://sepolia.etherscan.io",
-      "peers": ["testnet", "baseSepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "arbitrumSepolia"]
+      "peers": ["testnet", "baseSepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "arbitrumSepolia", "optimismSepolia"]
     },
     "baseSepolia": {
       "label": "Base Sepolia",
@@ -67,7 +67,7 @@
       "domainId": 84532,
       "deployOracle": false,
       "explorerUrl": "https://sepolia.basescan.org",
-      "peers": ["testnet", "sepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "arbitrumSepolia"]
+      "peers": ["testnet", "sepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "arbitrumSepolia", "optimismSepolia"]
     },
     "assetchainTestnet": {
       "label": "Asset Chain Testnet",
@@ -75,7 +75,7 @@
       "domainId": 42421,
       "deployOracle": false,
       "explorerUrl": "https://scan-testnet.assetchain.org",
-      "peers": ["testnet", "sepolia", "baseSepolia", "polygonAmoy", "avalancheFuji", "arbitrumSepolia"]
+      "peers": ["testnet", "sepolia", "baseSepolia", "polygonAmoy", "avalancheFuji", "arbitrumSepolia", "optimismSepolia"]
     },
     "polygonAmoy": {
       "label": "Polygon Amoy",
@@ -83,7 +83,7 @@
       "domainId": 80002,
       "deployOracle": false,
       "explorerUrl": "https://amoy.polygonscan.com",
-      "peers": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "avalancheFuji", "arbitrumSepolia"]
+      "peers": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "avalancheFuji", "arbitrumSepolia", "optimismSepolia"]
     },
     "avalancheFuji": {
       "label": "Avalanche Fuji",
@@ -91,7 +91,7 @@
       "domainId": 43113,
       "deployOracle": false,
       "explorerUrl": "https://testnet.snowtrace.io",
-      "peers": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy", "arbitrumSepolia"]
+      "peers": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy", "arbitrumSepolia", "optimismSepolia"]
     },
     "arbitrumSepolia": {
       "label": "Arbitrum Sepolia",
@@ -99,7 +99,15 @@
       "domainId": 421614,
       "deployOracle": false,
       "explorerUrl": "https://sepolia.arbiscan.io",
-      "peers": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji"]
+      "peers": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "optimismSepolia"]
+    },
+    "optimismSepolia": {
+      "label": "Optimism Sepolia",
+      "chainId": 11155420,
+      "domainId": 11155420,
+      "deployOracle": false,
+      "explorerUrl": "https://sepolia-optimism.etherscan.io",
+      "peers": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "arbitrumSepolia"]
     },
     "mainnet": {
       "label": "BSC Mainnet",
@@ -107,7 +115,7 @@
       "domainId": 56,
       "deployOracle": true,
       "explorerUrl": "https://bscscan.com",
-      "peers": ["ethereum", "base", "assetchain", "polygon", "avalanche", "arbitrum"]
+      "peers": ["ethereum", "base", "assetchain", "polygon", "avalanche", "arbitrum", "optimism"]
     },
     "ethereum": {
       "label": "Ethereum Mainnet",
@@ -115,7 +123,7 @@
       "domainId": 1,
       "deployOracle": false,
       "explorerUrl": "https://etherscan.io",
-      "peers": ["mainnet", "base", "assetchain", "polygon", "avalanche", "arbitrum"]
+      "peers": ["mainnet", "base", "assetchain", "polygon", "avalanche", "arbitrum", "optimism"]
     },
     "base": {
       "label": "Base Mainnet",
@@ -123,7 +131,7 @@
       "domainId": 8453,
       "deployOracle": false,
       "explorerUrl": "https://basescan.org",
-      "peers": ["mainnet", "ethereum", "assetchain", "polygon", "avalanche", "arbitrum"]
+      "peers": ["mainnet", "ethereum", "assetchain", "polygon", "avalanche", "arbitrum", "optimism"]
     },
     "assetchain": {
       "label": "Asset Chain Mainnet",
@@ -131,7 +139,7 @@
       "domainId": 42420,
       "deployOracle": false,
       "explorerUrl": "https://scan.assetchain.org",
-      "peers": ["mainnet", "ethereum", "base", "polygon", "avalanche", "arbitrum"]
+      "peers": ["mainnet", "ethereum", "base", "polygon", "avalanche", "arbitrum", "optimism"]
     },
     "polygon": {
       "label": "Polygon PoS Mainnet",
@@ -139,7 +147,7 @@
       "domainId": 137,
       "deployOracle": false,
       "explorerUrl": "https://polygonscan.com",
-      "peers": ["mainnet", "ethereum", "base", "assetchain", "avalanche", "arbitrum"]
+      "peers": ["mainnet", "ethereum", "base", "assetchain", "avalanche", "arbitrum", "optimism"]
     },
     "avalanche": {
       "label": "Avalanche C-Chain Mainnet",
@@ -147,7 +155,7 @@
       "domainId": 43114,
       "deployOracle": false,
       "explorerUrl": "https://snowtrace.io",
-      "peers": ["mainnet", "ethereum", "base", "assetchain", "polygon", "arbitrum"]
+      "peers": ["mainnet", "ethereum", "base", "assetchain", "polygon", "arbitrum", "optimism"]
     },
     "arbitrum": {
       "label": "Arbitrum One Mainnet",
@@ -155,11 +163,19 @@
       "domainId": 42161,
       "deployOracle": false,
       "explorerUrl": "https://arbiscan.io",
-      "peers": ["mainnet", "ethereum", "base", "assetchain", "polygon", "avalanche"]
+      "peers": ["mainnet", "ethereum", "base", "assetchain", "polygon", "avalanche", "optimism"]
+    },
+    "optimism": {
+      "label": "Optimism Mainnet",
+      "chainId": 10,
+      "domainId": 10,
+      "deployOracle": false,
+      "explorerUrl": "https://optimistic.etherscan.io",
+      "peers": ["mainnet", "ethereum", "base", "assetchain", "polygon", "avalanche", "arbitrum"]
     }
   },
   "deploymentGroups": {
-    "testnet": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "arbitrumSepolia"],
-    "mainnet": ["mainnet", "ethereum", "base", "assetchain", "polygon", "avalanche", "arbitrum"]
+    "testnet": ["testnet", "sepolia", "baseSepolia", "assetchainTestnet", "polygonAmoy", "avalancheFuji", "arbitrumSepolia", "optimismSepolia"],
+    "mainnet": ["mainnet", "ethereum", "base", "assetchain", "polygon", "avalanche", "arbitrum", "optimism"]
   }
 }

@@ -80,6 +80,14 @@ const RPCS: Record<string, RpcConfig> = {
     url: process.env.ARBITRUM_SEPOLIA_RPC_URL ?? "https://sepolia-rollup.arbitrum.io/rpc",
     symbol: "ETH",
   },
+  optimism: {
+    url: process.env.OPTIMISM_MAINNET_RPC_URL ?? "https://mainnet.optimism.io",
+    symbol: "ETH",
+  },
+  optimismSepolia: {
+    url: process.env.OPTIMISM_SEPOLIA_RPC_URL ?? "https://sepolia.optimism.io",
+    symbol: "ETH",
+  },
 };
 
 const FAUCETS: Record<string, string[]> = {
@@ -90,6 +98,7 @@ const FAUCETS: Record<string, string[]> = {
   polygonAmoy: ["https://faucet.polygon.technology/"],
   avalancheFuji: ["https://faucet.avax.network/", "https://core.app/tools/testnet-faucet/"],
   arbitrumSepolia: ["https://www.alchemy.com/faucets/arbitrum-sepolia", "https://faucet.quicknode.com/arbitrum/sepolia"],
+  optimismSepolia: ["https://console.optimism.io/faucet", "https://www.alchemy.com/faucets/optimism-sepolia"],
 };
 
 function deployerAddress(): string {
