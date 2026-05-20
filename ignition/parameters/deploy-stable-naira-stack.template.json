@@ -1,6 +1,6 @@
 {
   "_doc": "Per-network deploy parameters for the StableNaira CCTP-style stack. Each chain deploys: StableNaira (UUPS proxy + impl + factory), ValidatorRegistry (UUPS), MultisigVerifier (non-upgradeable), MessageTransmitter (UUPS), TokenMessenger (UUPS). BSC chains additionally deploy StableNairaPriceOracle. Domain ids are application-defined uint32 identifiers stamped into every cross-chain message; they MUST match across chains and never collide. Timelock 0 means 'use the contract floor (1h)'. Initial validators / threshold are passed at init and bypass the timelock; everything else (route wiring, validator changes after init, verifier swap) goes through the queue/commit gate.",
-  "_admin_history": "Rotation log (most recent last). 1) Testnet rollout 2026-05-04: admin/owner/validators/reporters seeded with 0x39e67B9238B874f74233692454E2D04E9fC68363 (testnet deployer). 2) First mainnet rollout 2026-05-05: rotated to mainnet deployer 0xDe-E6-10-DE-Dc-65-2a-a0-A8-EB-9d-70-EB-41-5d-94-00-fC-F3-87 (hyphens added so audit-trail entries survive bulk replace_all edits to this template). The live mainnet contracts on BSC, Ethereum, and Base were initialized with that 0xDeE6 address as their on-chain owner. 3) Mainnet re-prep 2026-05-05: rotated forward to 0x39e67B9238B874f74233692454E2D04E9fC68363 in preparation for a fresh mainnet redeploy under that key. The 0xDeE6 contracts remain immutable on chain until ownership is transferred or a new deployment supersedes them. Single-key deployer-as-owner posture continues to override the published Mainnet Hard Gates; multisig migration is the next operational priority.",
+  "_admin_history": "Rotation log (most recent last). All historical addresses are hyphen-obfuscated so audit-trail entries survive bulk replace_all edits to this template; the current operator address appears un-obfuscated in the live config below. 1) Testnet rollout 2026-05-04: admin/owner/validators/reporters seeded with 0x39-e6-7B-92-38-B8-74-f7-42-33-69-24-54-E2-D0-4E-9f-C6-83-63 (testnet deployer). 2) First mainnet rollout 2026-05-05: rotated to mainnet deployer 0xDe-E6-10-DE-Dc-65-2a-a0-A8-EB-9d-70-EB-41-5d-94-00-fC-F3-87. The live mainnet contracts on BSC, Ethereum, and Base were initialized with that 0xDeE6 address as their on-chain owner. 3) Mainnet re-prep 2026-05-05: rotated forward to 0x39-e6-7B-92-38-B8-74-f7-42-33-69-24-54-E2-D0-4E-9f-C6-83-63 in preparation for a fresh mainnet redeploy under that key (never executed). The 0xDeE6 contracts remain immutable on chain until ownership is transferred or a new deployment supersedes them. 4) Operator key rotation 2026-05-19: rotated to 0xde6E09456f7996A63AB3f31936e49C8EF6a0F419 (current operator key in core/.env). All future deploys initialize under this address. Live BSC/ETH/Base mainnet contracts still owned by 0xDeE6 until ownership is transferred. Single-key deployer-as-owner posture continues to override the published Mainnet Hard Gates; multisig migration is the next operational priority.",
   "common": {
     "token": {
       "name": "StableNaira",
@@ -9,7 +9,7 @@
     },
     "validatorRegistry": {
       "validators": [
-        "0x39e67B9238B874f74233692454E2D04E9fC68363"
+        "0xde6E09456f7996A63AB3f31936e49C8EF6a0F419"
       ],
       "threshold": 1,
       "initialTimelock": 0,
@@ -29,12 +29,12 @@
     "oracle": {
       "decimals": 8,
       "reporters": [
-        "0x39e67B9238B874f74233692454E2D04E9fC68363"
+        "0xde6E09456f7996A63AB3f31936e49C8EF6a0F419"
       ],
       "quorum": 1
     },
-    "owner": "0x39e67B9238B874f74233692454E2D04E9fC68363",
-    "admin": "0x39e67B9238B874f74233692454E2D04E9fC68363"
+    "owner": "0xde6E09456f7996A63AB3f31936e49C8EF6a0F419",
+    "admin": "0xde6E09456f7996A63AB3f31936e49C8EF6a0F419"
   },
   "networks": {
     "localhost": {
