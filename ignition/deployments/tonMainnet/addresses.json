@@ -1,0 +1,52 @@
+{
+  "network": "tonMainnet",
+  "workchain": 0,
+  "domainId": 1000001,
+  "chainId": 504,
+  "transmitterId": 504,
+  "explorerUrl": "https://tonviewer.com",
+  "deployer": "UQC5sIHU-6ItObC0rT8cWWKEbCDaV70_-AaOVDVpYaW7ev1U",
+  "deployedAt": "2026-05-21T16:29:00.488Z",
+  "contracts": {
+    "stableNairaJettonMaster": "EQDuSCdKmIv2Uua6042I_69Ne4rIFPkR-_CVObYCuAmZfNqK",
+    "validatorRegistry": "EQAfvbdsmsggCDrLgAGMQbvDx6jhuiBLwYKL2Qs4k1_egfGr",
+    "messageTransmitter": "EQAL4I6OGbKU1DNl4xz45bngdt9SVaOsssx1DVWUZ3cisU1b",
+    "tokenMessenger": "EQC_KfwqgwGwKttM0yMe1VPuQO63lK27bffzuv0gCZ_KXYJB"
+  },
+  "configuration": {
+    "tokenName": "StableNaira",
+    "tokenSymbol": "SNR",
+    "decimals": 2,
+    "mintCap": 0,
+    "timelockSeconds": 3600,
+    "validators": [
+      "0x2503cba0edfee3f790d14ba141b92b11816ec987"
+    ],
+    "threshold": 1,
+    "feeBps": 0,
+    "maxMessageBodySize": 4096,
+    "minterRoleGranted": true
+  },
+  "remoteRouters": [
+    {
+      "domain": 56,
+      "router": "0x000000000000000000000000be1ed9d08141d4c8331ba30ecb64ff42f1512f31",
+      "label": "BSC"
+    },
+    {
+      "domain": 1,
+      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
+      "label": "Ethereum"
+    },
+    {
+      "domain": 8453,
+      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
+      "label": "Base"
+    },
+    {
+      "domain": 42420,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "label": "AssetChain"
+    }
+  ]
+}
