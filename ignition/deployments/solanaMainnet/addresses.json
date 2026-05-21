@@ -52,7 +52,9 @@
     "transmitterDerivation": "last 20 bytes of keccak256(message_transmitter program id bytes)",
     "maxBodySize": 4096,
     "mintCap": 0,
-    "validators": ["0x2503Cba0edfEe3F790D14bA141b92B11816EC987"],
+    "validators": [
+      "0x2503Cba0edfEe3F790D14bA141b92B11816EC987"
+    ],
     "threshold": 1,
     "feeBps": 0,
     "feeRecipient": "CSwhhHuiBqxE5fZr6ggDKUePh9gKKMTUFPVtFV6iNuL2",
@@ -106,20 +108,20 @@
       "effect": "anchor idl fetch <programId> returns the IDL; Solscan/SolanaFM can decode instruction calls (mintTo, depositForBurn, etc.) by name."
     },
     "otterSecBinaryVerification": {
-      "status": "BLOCKED on upstream toolchain mismatch",
-      "blocker": "Project's rust-toolchain.toml pins Rust 1.89; Cargo.lock pulls wincode 0.5.4 which requires the edition2024 Cargo feature (Rust 1.85+). Every solanafoundation/solana-verifiable-build image up to and including 3.0.12 (newest as of 2026-05-21) ships cargo 1.84 and fails the build with 'feature edition2024 is required'. The deployed bytecode is reproducible locally with Rust 1.89, but OtterSec's verifier service cannot currently rebuild it.",
-      "pdaUploadedFor": {
-        "crypto_parity": {
-          "uploadTxSignature": "7RUrtaH14oeH21YZGFYE3b76bfba91RLVDJFXHX9w5FjsTDYrjmxFbv8gbaYpmKc5vHWGFKStLgfUrkdMotRyeF",
-          "lastJobFailedAt": "https://verify.osec.io/job/317e18f9-e918-45b3-a368-9e1019e68ed8"
-        }
+      "status": "VERIFIED for all 5 programs (2026-05-21)",
+      "registry": "https://verify.osec.io",
+      "baseImage": "ghcr.io/stablenaira/solana-verifiable-build:3.1.14-v1.52",
+      "baseImageBuildContext": "Custom verifier image built from solanafoundation/solana-verifiable-build:3.0.12 with Solana CLI replaced by 3.1.14 + platform-tools v1.52 (rustc 1.89). Dockerfile lives at solana/scripts/verifier-image/Dockerfile.",
+      "commit": "60e5cfbcbb2ad4ccc3ef97d4031c019a686a3e40",
+      "programsUpgraded": "After the initial deploy, all 5 programs were upgraded with bytecode produced inside the verifier image (solana program deploy --program-id <existing-keypair>), so the on-chain hash equals the canonical image-build hash. Upgrade preserved every program id and all initialized state (config PDAs, mint, MINTER role).",
+      "results": {
+        "crypto_parity":       { "verifiedHash": "a9cff762b9fc3d1d32215ce88fcf43cd6e249051a46ff43f793902b163157a44", "jobUrl": "https://verify.osec.io/job/7d93ce5d-a3ce-4f7d-81cd-3ed3fcd8832e" },
+        "message_transmitter": { "verifiedHash": "9fa71bb486588e149bd4a266665650733fa731e46b65f1ed3299b61811bc9bc1", "jobUrl": "https://verify.osec.io/job/8cebda95-d74f-4ee3-a563-5d39e2038ade" },
+        "stable_naira":        { "verifiedHash": "9d23aaa347314df4f0e3e6c587627c1242af6bb2045624837a905a11063e6ab8", "jobUrl": "https://verify.osec.io/job/cceca5a0-6e66-4678-948b-44c7bbd59771" },
+        "token_messenger":     { "verifiedHash": "fda51b10aa4f1d7b2db3b00a070a40347e5eee9699ab4a35b633b60be31d0c6b", "jobUrl": "https://verify.osec.io/job/eac27012-df58-4107-9a3d-7eada7a0109b" },
+        "validator_registry":  { "verifiedHash": "1d4f0ceb514dad6dcc4df72dfc5085e771c4da5a0d1a8b109f5068db4ec627f2", "jobUrl": "https://verify.osec.io/job/55b726af-233e-4c5d-ba3a-478c72ef9681" }
       },
-      "nextActions": [
-        "Watch for a solanafoundation/solana-verifiable-build image with cargo 1.85+ (no public ETA).",
-        "Re-run `solana-verify remote submit-job --program-id <id> --uploader CSwhhH...` once a usable image lands.",
-        "Alternatively: build + publish a custom verifier base image with the matching toolchain and submit with `--base-image <custom>` (operational overhead).",
-        "Until then: anyone can locally verify by cloning github.com/stablenaira/core@60e5cfb, cd solana, `solana-verify get-executable-hash target/deploy/<name>.so` and comparing to `solana-verify get-program-hash <program_id>`."
-      ]
+      "explorerEffect": "Solscan, SolanaFM, and Solana Explorer all show the green 'Verified' badge with source link to github.com/stablenaira/core@60e5cfb. Anyone can reproduce: `solana-verify build --base-image ghcr.io/stablenaira/solana-verifiable-build:3.1.14-v1.52 --library-name <name> .` from the repo root and compare `solana-verify get-executable-hash <so>` to `solana-verify get-program-hash <programId>`."
     }
   },
   "_state": "INITIALIZED. All 4 stateful programs are configured (crypto_parity is stateless). SNR Token-2022 mint live; bridge can burn-from depositors via the MINTER role PDA. No remote routers are registered yet, so cross-chain depositForBurn / receiveMessage calls revert with UnregisteredRemoteRouter — bridge is functionally idle until peer routes are wired to BSC/Ethereum/Base/Asset Chain mainnet TokenMessengers and reciprocal Solana-side routes are added.",
@@ -130,5 +132,79 @@
     "Wire EVM MessageTransmitter remote routers to recognise Solana's (chain_id, transmitter) identity above",
     "Move upgrade authority and admin authority to Squads multisig once available",
     "Schedule formal audit before any user-visible bridge activity"
+  ],
+  "remoteRouters": [
+    {
+      "label": "BSC",
+      "domain": 56,
+      "router": "0x000000000000000000000000be1ed9d08141d4c8331ba30ecb64ff42f1512f31",
+      "status": "wired",
+      "pda": "BDZxuzUb1KFajv8S2CQqShR2yX5G3LHs2phzkwCjUQiG",
+      "txSignature": "5vSd1ftA7mfWCcSG8ZmjBctJNN4TQYZa9eovGsz5LPwcRRcB4BVXPtnQGJcNSx6Hx38weP53e2DEjibH8Kd9nfWG"
+    },
+    {
+      "label": "Ethereum",
+      "domain": 1,
+      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
+      "status": "wired",
+      "pda": "AoKn2FU9SoGyFvSpV7ZqjMEuETB4Lw9soZqWhyudDiBv",
+      "txSignature": "3iKruoBkS72RtyHB8q8urE95VhqyZ7g4LJ5bUgaXmj8M6ajjPYMV3EggwddmbmFfpAToV4tudvjxs6gmdsHXuwT6"
+    },
+    {
+      "label": "Base",
+      "domain": 8453,
+      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
+      "status": "wired",
+      "pda": "JBGftNBiSzgRc3FCSa7pCfN2EieSfayYuUCC1i1TJZ5w",
+      "txSignature": "3T84WZvLUsDgupPFG8ZVAN4LPFNxhGLwkxTFLuQNrV4hN7q2Xo1xQS4knuzftYx3tLye2WyWiiNVnLyeKFhnTrtx"
+    },
+    {
+      "label": "AssetChain",
+      "domain": 42420,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "status": "wired",
+      "pda": "Hn79CiDcLdyzUnECbvyyByC3gBJXFVxfbVAFCtsxAXA",
+      "txSignature": "2jCTvdCaGfEeFBoHNXKqSuj6mXEMuca36kK6CmJ7AEhjKUhmtw6UQnqoqTKDC2szEZHDVvKaJTAWqKeEHW1HB9K1"
+    },
+    {
+      "label": "Polygon",
+      "domain": 137,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "status": "wired",
+      "pda": "23MJrJNbVEvVqJFpjRDKBQYaD1jiEpiQqRX6HrvuCGaC",
+      "txSignature": "2WJpDpHUHECjmaGvqWCsSGdUceFNHx4vCZftWfCKN5AfmibVJUrNa66HCguALwmdUVJyBawVupmPxiPS3d8M6Cmb"
+    },
+    {
+      "label": "Avalanche",
+      "domain": 43114,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "status": "wired",
+      "pda": "GSfB7GiGHjfN128HdzYxghtkUHMBhUmsHhDW6bDmn8VY",
+      "txSignature": "5UzVeV7HPePijYdUDfkd5Z7gFon8kx8fwkX2kWvuxxPHU5kEnhaNaLKd1dcm6vYQNTbgjKwtFvftW7MjLPCiZCmD"
+    },
+    {
+      "label": "Arbitrum",
+      "domain": 42161,
+      "router": "0x0000000000000000000000006d1f0b29018c9a846ee660f22299f4cea71dedd3",
+      "status": "wired",
+      "pda": "7nQsFaYkc1bVtNCL4UrLEzmaXXFK7JLfLwBFnHxcrDJW",
+      "txSignature": "51vpMgpG7rmxnj1Ti33vCbgs3B1jxjtHVkrTmmTyaBRAtF82FyC4WgYdxR7Wb4TZAP4khSgnWQiS2qsovoMu6DbY"
+    },
+    {
+      "label": "Optimism",
+      "domain": 10,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "status": "wired",
+      "pda": "EVwZKrUBQL696f5vWznbTUAa28sdcSi36aSbndxRjPfJ",
+      "txSignature": "2fguzhs7Sv362KsL5HGL4mr9nBCW4RVydWDYpeghZ6tgUWYKJCr6DS2cQmud5YQst5dhLR8imvBLKLJXCJbG11Ee"
+    },
+    {
+      "label": "TON",
+      "domain": 1000001,
+      "router": "0xbf29fc2a8301b02adb4cd3231ed553ee40eeb794adbb6df7f3bafd20099fca5d",
+      "status": "wired",
+      "pda": "DLGWEoP5HXzn6NwaqJMMxuqkezAPaUunc5yWL76ATfPF",
+      "txSignature": "3R7QuaqFiqfJ1VV8XaXg5jjuUrCknKshz4bYSvbgFzgpQGYYwcH8CnyNVBuJ6QV1MQiUVB9YTnAf48MRwvTrBFqN"
+    }
   ]
 }
