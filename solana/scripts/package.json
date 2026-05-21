@@ -1,0 +1,13 @@
+{
+  "name": "@stablenaira/solana-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "init:mainnet": "bun init-mainnet.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.0",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.95.4"
+  }
+}

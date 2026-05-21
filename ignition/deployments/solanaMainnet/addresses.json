@@ -40,13 +40,71 @@
     }
   },
   "deployCostSol": "8.1146",
-  "deployerBalanceAfterSol": "11.50812772",
-  "_state": "PROGRAMS DEPLOYED, ON-CHAIN STATE NOT INITIALIZED. The five program binaries are live and upgradeable under deployer authority. None of the per-program initialize instructions have been called yet, so token mints / admin / validator set / domain id / peer routers are all unset. Calling initialize is a separate operational step that must decide: (1) domain id for Solana mainnet; (2) initial admin authority (PDA vs deployer keypair vs Squads multisig); (3) initial validator set (the EVM mainnet validator is queued to be 0x2503 — Solana ValidatorRegistry uses 20-byte EVM-style addresses per the multisig-verifier parity work); (4) mint cap / token name / symbol on stable_naira; (5) peer registration for BSC/Ethereum/Base TokenMessengers. Until then these programs are inert and cannot mint, bridge, or attest.",
-  "_caveats": "Same program keypair files (target/deploy/<name>-keypair.json) are used across localnet/devnet/mainnet per Anchor.toml. Anyone with access to those keypair files can also deploy/upgrade at the same address on any cluster they have funds on. The .so binaries were built today (2026-05-21) from main; no third-party audit at the time of deploy (commit history tags Phase 7 as 'audit-prep'). Multisig migration of upgrade authority remains the operational priority.",
+  "deployerBalanceAfterDeploySol": "11.50812772",
+  "initializedAt": "2026-05-21T12:30:00Z",
+  "initCostSol": "0.01470864",
+  "deployerBalanceAfterInitSol": "11.49341908",
+  "initialState": {
+    "localDomain": 101,
+    "chainId": "0x4d7d13e016a7fad1143a43b5f29fe01cacd28f3360a61ff0f45eabed3c0fca6b",
+    "chainIdDerivation": "raw 32-byte bytes of message_transmitter program id (6DV1hTBVf6Ks9mguQiVY82B5uGPQS2nHddzgL3GhFaWe)",
+    "transmitter": "0xb497679b39d2c19867c4e3d9b3316d3c3ccb74f3",
+    "transmitterDerivation": "last 20 bytes of keccak256(message_transmitter program id bytes)",
+    "maxBodySize": 4096,
+    "mintCap": 0,
+    "validators": ["0x2503Cba0edfEe3F790D14bA141b92B11816EC987"],
+    "threshold": 1,
+    "feeBps": 0,
+    "feeRecipient": "CSwhhHuiBqxE5fZr6ggDKUePh9gKKMTUFPVtFV6iNuL2",
+    "admin": "CSwhhHuiBqxE5fZr6ggDKUePh9gKKMTUFPVtFV6iNuL2",
+    "tokenStandard": "Token-2022 with PermanentDelegate + Pausable extensions",
+    "decimals": 2
+  },
+  "initializedAccounts": {
+    "snrMint": {
+      "address": "4zMkZY5ytjG5gLLEQL4FQcuFJfHdiDZLmKsaGGXNytt",
+      "kind": "Token-2022 mint owned by stable_naira config PDA",
+      "initTxSignature": "5j9MYWdgzVh4g4DXyAuTerLJfcaFmx5HbHFwchUkJrwQdQkf8p7mfix13ZQiRrjGSx85Ctw1osjVW6Fmt5zUVx1b"
+    },
+    "stableNairaConfig": {
+      "pda": "FP5UNUMh9sroxQU4co2ABRxgKMAFnAcnUVg5DAgd9LYo",
+      "seed": "[b\"config\"]",
+      "owner": "stable_naira program (7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD)",
+      "initTxSignature": "5j9MYWdgzVh4g4DXyAuTerLJfcaFmx5HbHFwchUkJrwQdQkf8p7mfix13ZQiRrjGSx85Ctw1osjVW6Fmt5zUVx1b"
+    },
+    "validatorRegistry": {
+      "pda": "C7bzSNW64WWMbdqNWz9RveFZVWW5CrBGkL4p5GXQWAAX",
+      "seed": "[b\"registry\"]",
+      "owner": "validator_registry program (GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR)",
+      "initTxSignature": "4hmZzigy6qADmpuhzCiaePCkQi8ak2xnAFv2iUpr7SPkozwBjGptfWmJaMJPA9bJjQxfYnKBunYyTWoVq4uysgcC"
+    },
+    "messageTransmitterConfig": {
+      "pda": "B4coogcquwGs2CnfjQvZ1oH2fGKqRXQPmhv37Fqbo9DD",
+      "seed": "[b\"mt_config\"]",
+      "owner": "message_transmitter program (6DV1hTBVf6Ks9mguQiVY82B5uGPQS2nHddzgL3GhFaWe)",
+      "initTxSignature": "6FtuWsbrYd2ZzHCiLhhLNUe8i9HjZzBeioCtQJX4k65WcVSXC1gexjBNzVRfiaKeg1WyQ929XCyv8WozM3uZJow"
+    },
+    "tokenMessengerConfig": {
+      "pda": "8x2fEAK1z9wBqb1iqAyN2EH3PUQkgKaa69Lm7XwhcpTw",
+      "seed": "[b\"tm_config\"]",
+      "owner": "token_messenger program (AcKeZENGFRMxm3rtQg3chAiwf24d992Ljj574i937jjv)",
+      "initTxSignature": "5y62Y5ceyQLFHVvG6TTsc4Pxzk5uqh3ShKi6A5eDh9aYjZj7tsrMS1EwSFR41fVGKfEgzeUCDAmSkaAP6rKEbiEm",
+      "holds": "MINTER role on stable_naira (so it can burn-from depositors during deposit_for_burn)"
+    },
+    "minterRolePda": {
+      "pda": "DAoGM4fr2RnTbMLcYBL4p2KuS1svSpf116pPSRkpVJfT",
+      "seed": "[b\"role\", 0x00 (ROLE_MINTER), token_messenger config PDA]",
+      "owner": "stable_naira program (7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD)",
+      "grantTxSignature": "4UDM8FzamV8Pf5jA9jkEt41EfDjxJP8DcuWvGitXZwWcnfCSjW7VD1B2qp5mDHFEjtSwQ426P8TwEkH1My9NBkKA"
+    }
+  },
+  "_state": "INITIALIZED. All 4 stateful programs are configured (crypto_parity is stateless). SNR Token-2022 mint live; bridge can burn-from depositors via the MINTER role PDA. No remote routers are registered yet, so cross-chain depositForBurn / receiveMessage calls revert with UnregisteredRemoteRouter — bridge is functionally idle until peer routes are wired to BSC/Ethereum/Base/Asset Chain mainnet TokenMessengers and reciprocal Solana-side routes are added.",
+  "_caveats": "Same program keypair files (target/deploy/<name>-keypair.json) are used across localnet/devnet/mainnet per Anchor.toml. Anyone with access to those keypair files can also deploy/upgrade at the same address on any cluster they have funds on. The .so binaries were built today (2026-05-21) from main; no third-party audit at the time of deploy (commit history tags Phase 7 as 'audit-prep'). Validator set is a single signer (0x2503), same leaked-key posture as EVM. Multisig migration of upgrade authority + admin authority remains the operational priority.",
   "_nextSteps": [
-    "Plan + run initialize instructions for each program with chosen parameters",
-    "Decide Solana mainnet domain id and register reciprocal peer routes on BSC/Ethereum/Base mainnet TokenMessengers (1h timelock each on the EVM side)",
-    "Move upgrade authority to Squads multisig once available",
+    "Register Solana domain (101) as a peer on BSC/Ethereum/Base/Asset Chain mainnet TokenMessenger contracts via queueSetRemoteRouter (1h timelock per EVM chain)",
+    "Register each EVM mainnet TokenMessenger as a remote router on token_messenger via set_remote_router (no timelock on Solana side)",
+    "Wire EVM MessageTransmitter remote routers to recognise Solana's (chain_id, transmitter) identity above",
+    "Move upgrade authority and admin authority to Squads multisig once available",
     "Schedule formal audit before any user-visible bridge activity"
   ]
 }
