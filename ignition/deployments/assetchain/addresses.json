@@ -1,0 +1,33 @@
+{
+  "network": "assetchain",
+  "chainId": 42420,
+  "domainId": 42420,
+  "label": "Asset Chain Mainnet",
+  "explorerUrl": "https://scan.assetchain.org",
+  "deployer": "0x2503Cba0edfEe3F790D14bA141b92B11816EC987",
+  "deployedAt": "2026-05-21T12:07:56.657Z",
+  "contracts": {
+    "stableNaira": "0xFB47B844a38c892e5aAE6B8eFbFdBA8517a349dE",
+    "stableNairaImpl": "0xDf2D5C7Fdc5c6Ad2c2bf14317Bbb3a7F5B6c9F96",
+    "stableNairaDeployer": "0xb48A78233F8EbAeAac974192ea45dAaf3f72fe8a",
+    "validatorRegistry": "0xB4da671A27E524349b65Eba0761E3F04adAe0b3F",
+    "validatorRegistryImpl": "0xdAaF497B209aCf3E578B320BcB4CbA44783aAcb2",
+    "verifier": "0xB7a3aE9000D1e6fddddc372932953E7A336AF17f",
+    "messageTransmitter": "0x05ea5adfad4618B4bFB1abF34f9c207c22F678dE",
+    "messageTransmitterImpl": "0x80c3a30d735C952Bd0849385Bbf85610E4d294AE",
+    "tokenMessenger": "0x534ffE8ac515BC5aB681D86973748D85041bFE8D",
+    "tokenMessengerImpl": "0xD236815d2cB0a63dC0af1Dbd6f005CAbc63Ec669"
+  },
+  "configuration": {
+    "tokenName": "StableNaira",
+    "tokenSymbol": "SNR",
+    "validators": [
+      "0x2503Cba0edfEe3F790D14bA141b92B11816EC987"
+    ],
+    "threshold": 1,
+    "feeBps": 0,
+    "maxMessageBodySize": 4096,
+    "minterRoleGranted": true
+  },
+  "remoteRouters": []
+}

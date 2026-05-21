@@ -1,0 +1,52 @@
+{
+  "network": "solanaMainnet",
+  "cluster": "mainnet-beta",
+  "label": "Solana Mainnet",
+  "explorerUrl": "https://explorer.solana.com",
+  "deployer": "CSwhhHuiBqxE5fZr6ggDKUePh9gKKMTUFPVtFV6iNuL2",
+  "upgradeAuthority": "CSwhhHuiBqxE5fZr6ggDKUePh9gKKMTUFPVtFV6iNuL2",
+  "deployedAt": "2026-05-21T11:35:00Z",
+  "rpc": "Alchemy mainnet (key held in solana CLI config; not in repo)",
+  "programs": {
+    "crypto_parity": {
+      "programId": "77dv5m4NUhEDX768Kt1bgkAu34nxaZ51sPhNzN6hamik",
+      "sizeBytes": 81024,
+      "deployTxSignature": "2XKZo4EacekyMG9Ea8z1z29YnMQmQJUGc4Etsr5GBk8YdKi4zLFMtdAmHeJ1dM8DsJ76oAhaHnbL3AGbXEs9c1oe",
+      "lastDeployedSlot": 421198147
+    },
+    "message_transmitter": {
+      "programId": "6DV1hTBVf6Ks9mguQiVY82B5uGPQS2nHddzgL3GhFaWe",
+      "sizeBytes": 213248,
+      "deployTxSignature": "26N6zLynpQWtBjY6EHfvLy3WZFmdq9BUHZh2vVSksRqsfPNLUAp1RXxkq5sHvBySaLbmWS6nJS3SQTBHURNoA3yn",
+      "lastDeployedSlot": 421198242
+    },
+    "validator_registry": {
+      "programId": "GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR",
+      "sizeBytes": 240864,
+      "deployTxSignature": "38h3u7uoh5gMpLWnsFTTRcFxucz5HP7UDUiCVfjsVDEi4TxwBsY2J4cRHgunK2x2gU4wMbWSft8E2xD8n1DxEpgS",
+      "lastDeployedSlot": 421198337
+    },
+    "token_messenger": {
+      "programId": "AcKeZENGFRMxm3rtQg3chAiwf24d992Ljj574i937jjv",
+      "sizeBytes": 300144,
+      "deployTxSignature": "4j8i8kEtLEZzbdUSK4mraCA5JU8pzrmjN6Tajr1SQxDoaqYeFS3Zt6AHxo6wMfGNYw6F5y2V9Ukc3h2MEWVHQJfs",
+      "lastDeployedSlot": 421198420
+    },
+    "stable_naira": {
+      "programId": "7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD",
+      "sizeBytes": 328088,
+      "deployTxSignature": "5XyLW22Bq8PutNs3Xv8Z7GmefxjDuzcRaFYUPuiJ598TCth4TEx8dk6ycQvxJRyF9p7XsqtdgS8B3AEEBXjdwoPf",
+      "lastDeployedSlot": 421198504
+    }
+  },
+  "deployCostSol": "8.1146",
+  "deployerBalanceAfterSol": "11.50812772",
+  "_state": "PROGRAMS DEPLOYED, ON-CHAIN STATE NOT INITIALIZED. The five program binaries are live and upgradeable under deployer authority. None of the per-program initialize instructions have been called yet, so token mints / admin / validator set / domain id / peer routers are all unset. Calling initialize is a separate operational step that must decide: (1) domain id for Solana mainnet; (2) initial admin authority (PDA vs deployer keypair vs Squads multisig); (3) initial validator set (the EVM mainnet validator is queued to be 0x2503 — Solana ValidatorRegistry uses 20-byte EVM-style addresses per the multisig-verifier parity work); (4) mint cap / token name / symbol on stable_naira; (5) peer registration for BSC/Ethereum/Base TokenMessengers. Until then these programs are inert and cannot mint, bridge, or attest.",
+  "_caveats": "Same program keypair files (target/deploy/<name>-keypair.json) are used across localnet/devnet/mainnet per Anchor.toml. Anyone with access to those keypair files can also deploy/upgrade at the same address on any cluster they have funds on. The .so binaries were built today (2026-05-21) from main; no third-party audit at the time of deploy (commit history tags Phase 7 as 'audit-prep'). Multisig migration of upgrade authority remains the operational priority.",
+  "_nextSteps": [
+    "Plan + run initialize instructions for each program with chosen parameters",
+    "Decide Solana mainnet domain id and register reciprocal peer routes on BSC/Ethereum/Base mainnet TokenMessengers (1h timelock each on the EVM side)",
+    "Move upgrade authority to Squads multisig once available",
+    "Schedule formal audit before any user-visible bridge activity"
+  ]
+}
