@@ -4,8 +4,9 @@
   "domainId": 56,
   "label": "BSC Mainnet",
   "explorerUrl": "https://bscscan.com",
-  "deployer": "0x39e67B9238B874f74233692454E2D04E9fC68363",
+  "deployer": "0x2503Cba0edfEe3F790D14bA141b92B11816EC987",
   "deployedAt": "2026-05-05T14:08:27.597Z",
+  "_currentOwnerSince": "2026-05-21T11:00:00Z",
   "contracts": {
     "stableNaira": "0x6B6f93a12705b6eB60490A8b8a9aC15b3B1ce0f2",
     "stableNairaImpl": "0x2C30F1277c615130f36eE0F924CA8A127e24D63A",
@@ -23,8 +24,9 @@
     "tokenName": "StableNaira",
     "tokenSymbol": "SNR",
     "validators": [
-      "0x39e67B9238B874f74233692454E2D04E9fC68363"
+      "0x2503Cba0edfEe3F790D14bA141b92B11816EC987"
     ],
+    "_validatorsNote": "Queued replace 0x4-5-5-3-1-4-f5-6d-1F-59-89-0e-e6-39-81-35-Bb-E1-E2-08-15-c0-0C -> 0x2503 on 2026-05-21 (tx 0x4e3b4d4f753e0537d5777716d5616ac9f6a2e0e66e13550e7162cf84e67905d9). 1-hour timelock; commitValidatorChange ETA ~2026-05-21T10:50Z UTC.",
     "threshold": 1,
     "feeBps": 0,
     "maxMessageBodySize": 4096,
@@ -32,11 +34,12 @@
     "oracle": {
       "decimals": 8,
       "reporters": [
-        "0x39e67B9238B874f74233692454E2D04E9fC68363"
+        "0x2503Cba0edfEe3F790D14bA141b92B11816EC987"
       ],
       "quorum": 1
     },
-    "_supersedes": "Earlier orphan deploy of BSC stack (StableNaira proxy 0xD250B10F28Bb0FE4A669F4cCb3F2e2B84FfF8e62) created during a Claude session before the user ran the canonical ceremony. The orphan contracts remain on chain but are not the official BSC deployment."
+    "_supersedes": "Earlier orphan deploy of BSC stack (StableNaira proxy 0xD250B10F28Bb0FE4A669F4cCb3F2e2B84FfF8e62) created during a Claude session before the user ran the canonical ceremony. The orphan contracts remain on chain but are not the official BSC deployment.",
+    "_ownershipRotation_2026_05_21": "Emergency rotation due to compromise of operator key 0xde-6E-09-45-6f-79-96-A6-3A-B3-f3-19-36-e4-9C-8E-F6-a0-F4-19 (which had been initialized as on-chain owner contra prior audit-trail). All AccessControl roles on StableNaira (DEFAULT_ADMIN, MINTER), and Ownable2Step ownership on ValidatorRegistry/MessageTransmitter/TokenMessenger/PriceOracle, rotated from 0xde6E09 -> 0x2503 via private mempool (48 Club Puissant). BSC PriceOracle reporters also rotated to [0x2503]. Gas swept from 0xde6E09. Validator replacement queued (1h timelock). Tx hashes in commit message."
   },
   "remoteRouters": [
     {

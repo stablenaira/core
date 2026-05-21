@@ -4,8 +4,9 @@
   "domainId": 8453,
   "label": "Base Mainnet",
   "explorerUrl": "https://basescan.org",
-  "deployer": "0x39e67B9238B874f74233692454E2D04E9fC68363",
+  "deployer": "0x2503Cba0edfEe3F790D14bA141b92B11816EC987",
   "deployedAt": "2026-05-05T14:11:48.345Z",
+  "_currentOwnerSince": "2026-05-21T11:00:00Z",
   "contracts": {
     "stableNaira": "0xfaE7C1AD37b7ad8848f840109332793bC5889563",
     "stableNairaImpl": "0x945aC9072BE1d49EEc62b59b41B0a544F47F088d",
@@ -22,12 +23,14 @@
     "tokenName": "StableNaira",
     "tokenSymbol": "SNR",
     "validators": [
-      "0x39e67B9238B874f74233692454E2D04E9fC68363"
+      "0x2503Cba0edfEe3F790D14bA141b92B11816EC987"
     ],
+    "_validatorsNote": "Queued replace 0x4-5-5-3-1-4-f5-6d-1F-59-89-0e-e6-39-81-35-Bb-E1-E2-08-15-c0-0C -> 0x2503 on 2026-05-21 (tx 0xf1cf382daa44662891cfe70f2c3c623411ca31ef45add8f25c0aa3a621e52d86). 1-hour timelock; commitValidatorChange after ETA.",
     "threshold": 1,
     "feeBps": 0,
     "maxMessageBodySize": 4096,
-    "minterRoleGranted": true
+    "minterRoleGranted": true,
+    "_ownershipRotation_2026_05_21": "Emergency rotation: DEFAULT_ADMIN on StableNaira and ownership on ValidatorRegistry/MessageTransmitter/TokenMessenger rotated 0xde-6E-09-45-6f-79-96-A6-3A-B3-f3-19-36-e4-9C-8E-F6-a0-F4-19 -> 0x2503 via Base public RPC (no general private mempool on Base; sequencer minimises MEV; Base totalSupply was 0 at rotation time). Tx hashes in commit message."
   },
   "remoteRouters": [
     {
