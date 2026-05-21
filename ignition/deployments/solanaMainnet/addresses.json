@@ -98,6 +98,30 @@
       "grantTxSignature": "4UDM8FzamV8Pf5jA9jkEt41EfDjxJP8DcuWvGitXZwWcnfCSjW7VD1B2qp5mDHFEjtSwQ426P8TwEkH1My9NBkKA"
     }
   },
+  "explorerSourceVisibility": {
+    "idlOnChain": {
+      "status": "uploaded for all 5 programs (Anchor IDL PDAs)",
+      "uploadedAt": "2026-05-21T13:10:00Z",
+      "uploader": "CSwhhHuiBqxE5fZr6ggDKUePh9gKKMTUFPVtFV6iNuL2",
+      "effect": "anchor idl fetch <programId> returns the IDL; Solscan/SolanaFM can decode instruction calls (mintTo, depositForBurn, etc.) by name."
+    },
+    "otterSecBinaryVerification": {
+      "status": "BLOCKED on upstream toolchain mismatch",
+      "blocker": "Project's rust-toolchain.toml pins Rust 1.89; Cargo.lock pulls wincode 0.5.4 which requires the edition2024 Cargo feature (Rust 1.85+). Every solanafoundation/solana-verifiable-build image up to and including 3.0.12 (newest as of 2026-05-21) ships cargo 1.84 and fails the build with 'feature edition2024 is required'. The deployed bytecode is reproducible locally with Rust 1.89, but OtterSec's verifier service cannot currently rebuild it.",
+      "pdaUploadedFor": {
+        "crypto_parity": {
+          "uploadTxSignature": "7RUrtaH14oeH21YZGFYE3b76bfba91RLVDJFXHX9w5FjsTDYrjmxFbv8gbaYpmKc5vHWGFKStLgfUrkdMotRyeF",
+          "lastJobFailedAt": "https://verify.osec.io/job/317e18f9-e918-45b3-a368-9e1019e68ed8"
+        }
+      },
+      "nextActions": [
+        "Watch for a solanafoundation/solana-verifiable-build image with cargo 1.85+ (no public ETA).",
+        "Re-run `solana-verify remote submit-job --program-id <id> --uploader CSwhhH...` once a usable image lands.",
+        "Alternatively: build + publish a custom verifier base image with the matching toolchain and submit with `--base-image <custom>` (operational overhead).",
+        "Until then: anyone can locally verify by cloning github.com/stablenaira/core@60e5cfb, cd solana, `solana-verify get-executable-hash target/deploy/<name>.so` and comparing to `solana-verify get-program-hash <program_id>`."
+      ]
+    }
+  },
   "_state": "INITIALIZED. All 4 stateful programs are configured (crypto_parity is stateless). SNR Token-2022 mint live; bridge can burn-from depositors via the MINTER role PDA. No remote routers are registered yet, so cross-chain depositForBurn / receiveMessage calls revert with UnregisteredRemoteRouter — bridge is functionally idle until peer routes are wired to BSC/Ethereum/Base/Asset Chain mainnet TokenMessengers and reciprocal Solana-side routes are added.",
   "_caveats": "Same program keypair files (target/deploy/<name>-keypair.json) are used across localnet/devnet/mainnet per Anchor.toml. Anyone with access to those keypair files can also deploy/upgrade at the same address on any cluster they have funds on. The .so binaries were built today (2026-05-21) from main; no third-party audit at the time of deploy (commit history tags Phase 7 as 'audit-prep'). Validator set is a single signer (0x2503), same leaked-key posture as EVM. Multisig migration of upgrade authority + admin authority remains the operational priority.",
   "_nextSteps": [
