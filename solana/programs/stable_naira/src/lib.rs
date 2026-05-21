@@ -30,7 +30,7 @@ use spl_token_2022_interface::extension::{
 use spl_token_2022_interface::instruction as tix;
 use spl_token_2022_interface::state::{AccountState, Mint as MintState};
 
-declare_id!("BYB7RM7d4WeUWJd6xXDFZFqAEbbDa2Ezt718hpZG3eoG");
+declare_id!("7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD");
 
 pub const ROLE_MINTER: u8 = 0;
 pub const ROLE_PAUSER: u8 = 1;

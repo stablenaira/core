@@ -30,7 +30,7 @@ use stable_naira::cpi::accounts::{ForceBurn, MintTo};
 use stable_naira::program::StableNaira;
 use stable_naira::Config as SnConfig;
 
-declare_id!("ArDyHzc7LnyzvpmXJCabQUWCTWAbw9AgxbWQFA9SSxK8");
+declare_id!("AcKeZENGFRMxm3rtQg3chAiwf24d992Ljj574i937jjv");
 
 const BODY_VERSION: u32 = 1;
 const BURN_BODY_LEN: usize = 132;

@@ -26,7 +26,7 @@ use validator_registry::cpi::accounts::Verify as VrVerify;
 use validator_registry::program::ValidatorRegistry;
 use validator_registry::Registry;
 
-declare_id!("5mwNZ7p4auAjpGobZxePz5GxtrNosN7UTQeqBnz4s725");
+declare_id!("6DV1hTBVf6Ks9mguQiVY82B5uGPQS2nHddzgL3GhFaWe");
 
 const ENVELOPE_VERSION: u32 = 1;
 const MIN_MAX_BODY_SIZE: u64 = 132;

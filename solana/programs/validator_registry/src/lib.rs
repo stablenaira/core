@@ -18,7 +18,7 @@ use anchor_lang::prelude::*;
 use solana_keccak_hasher::hashv as keccak256;
 use solana_secp256k1_recover::secp256k1_recover;
 
-declare_id!("845CkeSs9ZsXGEgqw53zZ1hrWthj7iHFKUVsemsYWL4C");
+declare_id!("GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR");
 
 /// OZ EIP-2 ceiling: floor(secp256k1n / 2), big-endian.
 /// 57896044618658097711785492504343953926418782139537452191302581570759080747168

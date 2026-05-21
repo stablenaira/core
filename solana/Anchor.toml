@@ -6,11 +6,18 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-crypto_parity = "6VHLvJDTt5vCmPgPfa2PgW4TXsWFgbUSAbiesfYFa2h6"
-message_transmitter = "5mwNZ7p4auAjpGobZxePz5GxtrNosN7UTQeqBnz4s725"
-stable_naira = "BYB7RM7d4WeUWJd6xXDFZFqAEbbDa2Ezt718hpZG3eoG"
-token_messenger = "ArDyHzc7LnyzvpmXJCabQUWCTWAbw9AgxbWQFA9SSxK8"
-validator_registry = "845CkeSs9ZsXGEgqw53zZ1hrWthj7iHFKUVsemsYWL4C"
+crypto_parity = "77dv5m4NUhEDX768Kt1bgkAu34nxaZ51sPhNzN6hamik"
+message_transmitter = "6DV1hTBVf6Ks9mguQiVY82B5uGPQS2nHddzgL3GhFaWe"
+stable_naira = "7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD"
+token_messenger = "AcKeZENGFRMxm3rtQg3chAiwf24d992Ljj574i937jjv"
+validator_registry = "GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR"
+
+[programs.devnet]
+crypto_parity = "77dv5m4NUhEDX768Kt1bgkAu34nxaZ51sPhNzN6hamik"
+message_transmitter = "6DV1hTBVf6Ks9mguQiVY82B5uGPQS2nHddzgL3GhFaWe"
+stable_naira = "7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD"
+token_messenger = "AcKeZENGFRMxm3rtQg3chAiwf24d992Ljj574i937jjv"
+validator_registry = "GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR"
 
 [provider]
 cluster = "localnet"

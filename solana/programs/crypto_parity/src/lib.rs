@@ -3,7 +3,7 @@ use anchor_lang::solana_program::program::set_return_data;
 use solana_keccak_hasher::hashv as keccak256;
 use solana_secp256k1_recover::secp256k1_recover;
 
-declare_id!("6VHLvJDTt5vCmPgPfa2PgW4TXsWFgbUSAbiesfYFa2h6");
+declare_id!("77dv5m4NUhEDX768Kt1bgkAu34nxaZ51sPhNzN6hamik");
 
 // Phase 0 crypto-parity spike.
 //
