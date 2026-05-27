@@ -17,7 +17,7 @@ no-log-ix-name = []
 idl-build = [
     "anchor-lang/idl-build",
     "message_transmitter/idl-build",
-    "stable_naira/idl-build",
+    "stable_naira_v2/idl-build",
 ]
 anchor-debug = []
 custom-heap = []
@@ -26,9 +26,15 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = { version = "1.0.2", features = ["init-if-needed"] }
+# Both token program features so InterfaceAccount<'_, Mint> + the spl_token
+# helpers work side-by-side during the migration: handle_receive_message
+# accepts the new classic-SPL mint, and (post-cutover) deposit_for_burn
+# invokes SPL burn directly.
 anchor-spl = { version = "1.0.2", features = ["token_2022"] }
 message_transmitter = { path = "../message_transmitter", features = ["cpi"] }
-stable_naira = { path = "../stable_naira", features = ["cpi"] }
+# Stable Naira v2 — classic SPL controller. Replaces the Token-2022
+# `stable_naira` import; see wiki `13 Todos & Roadmap/Solana SPL Migration`.
+stable_naira_v2 = { path = "../stable_naira_v2", features = ["cpi"] }
 
 [dev-dependencies]
 anchor-lang = "1.0.2"

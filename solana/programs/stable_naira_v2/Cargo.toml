@@ -1,0 +1,43 @@
+[package]
+name = "stable_naira_v2"
+version = "0.1.0"
+description = "StableNaira (SNR) Solana controller — classic SPL Token edition. Mirrors EVM role-based access for MINTER + FREEZER, with multisig-gated admin. Replaces the Token-2022 + PermanentDelegate stable_naira program with a USDC-style architecture so the mint lists permissionlessly on every Solana DEX (Raydium CPMM/CLMM, Orca, Meteora, Jupiter)."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "stable_naira_v2"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+# Classic SPL via anchor-spl (no `token_2022` feature — we explicitly want the
+# classic Token program). `metadata` feature is here for future Metaplex
+# metadata creation if we want it on-chain; can be removed if not used.
+anchor-lang = "1.0.2"
+anchor-spl = { version = "1.0.2", features = ["metadata"] }
+
+[dev-dependencies]
+anchor-lang = "1.0.2"
+litesvm = "0.10.0"
+solana-message = "3.0.1"
+solana-transaction = "3.0.2"
+solana-signer = "3.0.0"
+solana-keypair = "3.0.1"
+solana-instruction = "3.0.0"
+solana-pubkey = "3.0.0"
+solana-account = "3.0.0"
+spl-token = "8.0.0"
+spl-associated-token-account = "8.0.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

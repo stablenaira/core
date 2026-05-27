@@ -21,14 +21,16 @@
 //! Analogous to (and cleaner than) the documented TON async divergence.
 
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program::invoke;
+use anchor_spl::token::spl_token::instruction as sp_ix;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use message_transmitter::cpi::accounts::ReceiveMessage as MtReceive;
 use message_transmitter::cpi::accounts::SendMessage as MtSend;
 use message_transmitter::program::MessageTransmitter;
 use message_transmitter::MtConfig;
-use stable_naira::cpi::accounts::{ForceBurn, MintTo};
-use stable_naira::program::StableNaira;
-use stable_naira::Config as SnConfig;
+use stable_naira_v2::cpi::accounts::MintToCtx as SnV2MintToCtx;
+use stable_naira_v2::program::StableNairaV2;
+use stable_naira_v2::Config as SnV2Config;
 
 declare_id!("AcKeZENGFRMxm3rtQg3chAiwf24d992Ljj574i937jjv");
 
@@ -53,11 +55,45 @@ pub mod token_messenger {
         let c = &mut ctx.accounts.config;
         c.owner = ctx.accounts.owner.key();
         c.message_transmitter = ctx.accounts.message_transmitter_program.key();
+        // Field is named `stable_naira` for historical reasons; in v2 it
+        // points at the `stable_naira_v2` controller program ID. The bytes
+        // are the same shape (a `Pubkey`).
         c.stable_naira = ctx.accounts.stable_naira_program.key();
         c.local_mint = ctx.accounts.mint.key();
         c.fee_bps = fee_bps;
         c.fee_recipient = fee_recipient;
         c.bump = ctx.bumps.config;
+        Ok(())
+    }
+
+    /// **Migration instruction.** One-shot used immediately after upgrading
+    /// this program from v1 (Token-2022 + `stable_naira`) to v2 (classic SPL
+    /// + `stable_naira_v2`). Repoints `TmConfig.stable_naira` at the new
+    /// controller program ID and `TmConfig.local_mint` at the new classic
+    /// SPL mint, atomically. Owner-only. After this call:
+    ///   - all subsequent `handle_receive_message` calls mint via the new
+    ///     controller into the new mint
+    ///   - the old Token-2022 mint is never touched by the bridge again
+    ///   - the old `stable_naira` controller program receives no further CPIs
+    /// Idempotent — calling twice with the same values is a no-op.
+    pub fn set_controller(
+        ctx: Context<AdminOnly>,
+        new_stable_naira_program: Pubkey,
+        new_local_mint: Pubkey,
+    ) -> Result<()> {
+        require_keys_neq!(new_stable_naira_program, Pubkey::default(), TmErr::ZeroAddress);
+        require_keys_neq!(new_local_mint, Pubkey::default(), TmErr::ZeroAddress);
+        let c = &mut ctx.accounts.config;
+        let old_controller = c.stable_naira;
+        let old_mint = c.local_mint;
+        c.stable_naira = new_stable_naira_program;
+        c.local_mint = new_local_mint;
+        emit!(ControllerMigrated {
+            old_controller,
+            new_controller: new_stable_naira_program,
+            old_mint,
+            new_mint: new_local_mint,
+        });
         Ok(())
     }
 
@@ -104,22 +140,36 @@ pub mod token_messenger {
         let bump = cfg.bump;
         let signer: &[&[&[u8]]] = &[&[CONFIG_SEED, &[bump]]];
 
-        // burn_from the holder (TokenMessenger config PDA holds MINTER on
-        // stable_naira — EVM burnFrom, no allowance).
-        stable_naira::cpi::burn_from(
-            CpiContext::new_with_signer(
-                ctx.accounts.stable_naira_program.key(),
-                ForceBurn {
-                    authority: ctx.accounts.config.to_account_info(),
-                    role_pda: ctx.accounts.sn_minter_role.to_account_info(),
-                    config: ctx.accounts.sn_config.to_account_info(),
-                    mint: ctx.accounts.mint.to_account_info(),
-                    account: ctx.accounts.depositor_token_account.to_account_info(),
-                    token_program: ctx.accounts.token_program.to_account_info(),
-                },
-                signer,
-            ),
+        // Burn directly from the depositor's token account via classic SPL
+        // `Burn`. The depositor is a signer on this outer instruction, so
+        // their signature propagates through the CPI to satisfy SPL's
+        // authority check. **No `approve` / allowance step needed** — the
+        // depositor's signature on `deposit_for_burn` IS the authorization,
+        // just like USDC's depositForBurn pattern.
+        //
+        // (v1 used `stable_naira::cpi::burn_from` which relied on the
+        // PermanentDelegate Token-2022 extension. v2 drops PermanentDelegate
+        // so the bridge can't burn arbitrary holder balances — but it
+        // doesn't need to, because depositForBurn is always called by the
+        // holder themselves.)
+        let tp = ctx.accounts.token_program.key();
+        let burn_ix = sp_ix::burn(
+            &tp,
+            &ctx.accounts.depositor_token_account.key(),
+            &ctx.accounts.mint.key(),
+            &ctx.accounts.depositor.key(),
+            &[],
             amount,
+        )
+        .map_err(|_| error!(TmErr::TokenIx))?;
+        invoke(
+            &burn_ix,
+            &[
+                ctx.accounts.depositor_token_account.to_account_info(),
+                ctx.accounts.mint.to_account_info(),
+                ctx.accounts.depositor.to_account_info(),
+                ctx.accounts.token_program.to_account_info(),
+            ],
         )?;
 
         // Fee path is dormant at fee_bps == 0 (v1). Conservation holds.
@@ -221,18 +271,25 @@ pub mod token_messenger {
         require!(amount_be[..24] == [0u8; 24], TmErr::AmountOverflow);
         let amount = u64::from_be_bytes(amount_be[24..32].try_into().unwrap());
 
-        // 5. Mint to the recipient (TokenMessenger config PDA holds MINTER).
+        // 5. Mint to the recipient via the new `stable_naira_v2` controller.
+        //    The TokenMessenger config PDA holds the MINTER role on v2 (the
+        //    grant PDA at `["role", ROLE_MINTER, tm_config_pda]` proves it),
+        //    so the CPI is authorized.
+        //
+        //    Note the account-name change vs v1: `authority` → `minter`,
+        //    `role_pda` → `grant`, `to` → `destination`. Same shape, USDC
+        //    posture: classic SPL mint, no PermanentDelegate plumbing.
         let bump = ctx.accounts.config.bump;
         let signer: &[&[&[u8]]] = &[&[CONFIG_SEED, &[bump]]];
-        stable_naira::cpi::mint_to(
+        stable_naira_v2::cpi::mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.stable_naira_program.key(),
-                MintTo {
-                    authority: ctx.accounts.config.to_account_info(),
-                    role_pda: ctx.accounts.sn_minter_role.to_account_info(),
+                SnV2MintToCtx {
+                    minter: ctx.accounts.config.to_account_info(),
                     config: ctx.accounts.sn_config.to_account_info(),
+                    grant: ctx.accounts.sn_minter_role.to_account_info(),
                     mint: ctx.accounts.mint.to_account_info(),
-                    to: ctx.accounts.recipient_token_account.to_account_info(),
+                    destination: ctx.accounts.recipient_token_account.to_account_info(),
                     token_program: ctx.accounts.token_program.to_account_info(),
                 },
                 signer,
@@ -372,11 +429,11 @@ pub struct Deposit<'info> {
 
     // stable_naira burn_from
     #[account(address = config.stable_naira)]
-    pub stable_naira_program: Program<'info, StableNaira>,
+    pub stable_naira_program: Program<'info, StableNairaV2>,
     /// CHECK: stable_naira MINTER role PDA for the TokenMessenger config PDA;
     /// validated inside stable_naira.
     pub sn_minter_role: UncheckedAccount<'info>,
-    pub sn_config: Account<'info, SnConfig>,
+    pub sn_config: Account<'info, SnV2Config>,
     #[account(mut, address = config.local_mint)]
     pub mint: InterfaceAccount<'info, Mint>,
     #[account(mut)]
@@ -419,10 +476,10 @@ pub struct HandleReceive<'info> {
 
     // stable_naira mint_to
     #[account(address = config.stable_naira)]
-    pub stable_naira_program: Program<'info, StableNaira>,
+    pub stable_naira_program: Program<'info, StableNairaV2>,
     /// CHECK: stable_naira MINTER role PDA for the TokenMessenger config PDA.
     pub sn_minter_role: UncheckedAccount<'info>,
-    pub sn_config: Account<'info, SnConfig>,
+    pub sn_config: Account<'info, SnV2Config>,
     #[account(mut, address = config.local_mint)]
     pub mint: InterfaceAccount<'info, Mint>,
     #[account(mut)]
@@ -449,6 +506,14 @@ pub struct MintAndWithdraw {
     pub amount: u64,
 }
 
+#[event]
+pub struct ControllerMigrated {
+    pub old_controller: Pubkey,
+    pub new_controller: Pubkey,
+    pub old_mint: Pubkey,
+    pub new_mint: Pubkey,
+}
+
 /* ------------------------------- errors --------------------------------- */
 
 #[error_code]
@@ -473,4 +538,8 @@ pub enum TmErr {
     FeeTooHigh,
     #[msg("recipient token account != BurnMessage mintRecipient")]
     RecipientMismatch,
+    #[msg("zero address")]
+    ZeroAddress,
+    #[msg("SPL token instruction construction failed")]
+    TokenIx,
 }

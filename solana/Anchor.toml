@@ -9,6 +9,7 @@ skip-lint = false
 crypto_parity = "77dv5m4NUhEDX768Kt1bgkAu34nxaZ51sPhNzN6hamik"
 message_transmitter = "6DV1hTBVf6Ks9mguQiVY82B5uGPQS2nHddzgL3GhFaWe"
 stable_naira = "7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD"
+stable_naira_v2 = "3LvP2DLRMJbgbzhaa7rGVqDM7Y9wJgHsvsEkWXCzMUHy"
 token_messenger = "AcKeZENGFRMxm3rtQg3chAiwf24d992Ljj574i937jjv"
 validator_registry = "GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR"
 
@@ -16,6 +17,7 @@ validator_registry = "GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR"
 crypto_parity = "77dv5m4NUhEDX768Kt1bgkAu34nxaZ51sPhNzN6hamik"
 message_transmitter = "6DV1hTBVf6Ks9mguQiVY82B5uGPQS2nHddzgL3GhFaWe"
 stable_naira = "7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD"
+stable_naira_v2 = "3LvP2DLRMJbgbzhaa7rGVqDM7Y9wJgHsvsEkWXCzMUHy"
 token_messenger = "AcKeZENGFRMxm3rtQg3chAiwf24d992Ljj574i937jjv"
 validator_registry = "GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR"
 
@@ -23,6 +25,7 @@ validator_registry = "GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR"
 crypto_parity = "77dv5m4NUhEDX768Kt1bgkAu34nxaZ51sPhNzN6hamik"
 message_transmitter = "6DV1hTBVf6Ks9mguQiVY82B5uGPQS2nHddzgL3GhFaWe"
 stable_naira = "7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD"
+stable_naira_v2 = "3LvP2DLRMJbgbzhaa7rGVqDM7Y9wJgHsvsEkWXCzMUHy"
 token_messenger = "AcKeZENGFRMxm3rtQg3chAiwf24d992Ljj574i937jjv"
 validator_registry = "GGMoxtodCLEvPB3HuDJcS3kcS6JVpmfBQEHYfoUPe7kR"
 
