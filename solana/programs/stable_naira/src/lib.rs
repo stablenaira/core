@@ -21,7 +21,15 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::{invoke, invoke_signed};
 use anchor_lang::solana_program::system_instruction;
+use anchor_spl::metadata::{mpl_token_metadata, Metadata};
+
+/// SPL Instructions sysvar address — required by Metaplex `CreateV1` for
+/// reentrancy / introspection. Constant since anchor-lang's path moves
+/// between versions.
+const INSTRUCTIONS_SYSVAR_ID: Pubkey = pubkey!("Sysvar1nstructions1111111111111111111111111");
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use mpl_token_metadata::instructions::{CreateV1Cpi, CreateV1CpiAccounts, CreateV1InstructionArgs};
+use mpl_token_metadata::types::TokenStandard;
 use spl_token_2022_interface::extension::pausable::instruction as pausable_ix;
 use spl_token_2022_interface::extension::pausable::PausableConfig;
 use spl_token_2022_interface::extension::{
@@ -375,6 +383,76 @@ pub mod stable_naira {
         });
         Ok(())
     }
+
+    /// Create a Metaplex Token Metadata account for the Token-2022 mint so
+    /// wallets and explorers display the StableNaira name, symbol and logo.
+    ///
+    /// Uses Metaplex `CreateV1` with `TokenStandard::Fungible` because the
+    /// older `CreateMetadataAccountV3` path rejects Token-2022 mints that
+    /// carry a `PermanentDelegate` extension (Metaplex misclassifies them as
+    /// ProgrammableNonFungible).
+    ///
+    /// The mint authority is the `config` PDA, so this CPIs to Metaplex with
+    /// `invoke_signed` using the config seeds. `update_authority` is set to
+    /// the same PDA — future edits flow through this program (or a multisig
+    /// that owns the program upgrade authority).
+    ///
+    /// Admin-only. Idempotent at the Metaplex level: re-calling on an existing
+    /// metadata account will revert. To update existing metadata, expose a
+    /// separate `update_metadata` instruction (out of scope for v1).
+    pub fn create_metadata(
+        ctx: Context<CreateTokenMetadata>,
+        name: String,
+        symbol: String,
+        uri: String,
+    ) -> Result<()> {
+        let args = CreateV1InstructionArgs {
+            name,
+            symbol,
+            uri,
+            seller_fee_basis_points: 0,
+            creators: None,
+            primary_sale_happened: false,
+            is_mutable: true,
+            token_standard: TokenStandard::Fungible,
+            collection: None,
+            uses: None,
+            collection_details: None,
+            rule_set: None,
+            decimals: Some(DECIMALS),
+            print_supply: None,
+        };
+
+        let metadata_program_ai = ctx.accounts.metadata_program.to_account_info();
+        let mint_ai = ctx.accounts.mint.to_account_info();
+        let config_ai = ctx.accounts.config.to_account_info();
+        let payer_ai = ctx.accounts.payer.to_account_info();
+        let metadata_ai = ctx.accounts.metadata.to_account_info();
+        let system_ai = ctx.accounts.system_program.to_account_info();
+        let sysvar_ix_ai = ctx.accounts.sysvar_instructions.to_account_info();
+        let token_program_ai = ctx.accounts.token_program.to_account_info();
+
+        let cpi = CreateV1Cpi::new(
+            &metadata_program_ai,
+            CreateV1CpiAccounts {
+                metadata: &metadata_ai,
+                master_edition: None,
+                mint: (&mint_ai, false /* not a signer; mint already exists */),
+                authority: &config_ai,
+                payer: &payer_ai,
+                // update_authority signs via invoke_signed using config PDA seeds
+                update_authority: (&config_ai, true),
+                system_program: &system_ai,
+                sysvar_instructions: &sysvar_ix_ai,
+                spl_token_program: Some(&token_program_ai),
+            },
+            args,
+        );
+        let bump = ctx.accounts.config.bump;
+        let signer_seeds: &[&[&[u8]]] = &[&[CONFIG_SEED, &[bump]]];
+        cpi.invoke_signed(signer_seeds)?;
+        Ok(())
+    }
 }
 
 /* ------------------------------- helpers -------------------------------- */
@@ -647,6 +725,35 @@ pub struct Seize<'info> {
     #[account(mut)]
     pub to: InterfaceAccount<'info, TokenAccount>,
     pub token_program: Interface<'info, TokenInterface>,
+}
+
+#[derive(Accounts)]
+pub struct CreateTokenMetadata<'info> {
+    pub admin: Signer<'info>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(seeds = [CONFIG_SEED], bump = config.bump, has_one = admin)]
+    pub config: Account<'info, Config>,
+    /// CHECK: validated to be the canonical Metaplex metadata PDA via seeds below.
+    #[account(
+        mut,
+        seeds = [
+            b"metadata",
+            metadata_program.key().as_ref(),
+            mint.key().as_ref(),
+        ],
+        bump,
+        seeds::program = metadata_program.key(),
+    )]
+    pub metadata: UncheckedAccount<'info>,
+    #[account(mut, address = config.mint)]
+    pub mint: InterfaceAccount<'info, Mint>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub metadata_program: Program<'info, Metadata>,
+    /// CHECK: must be the Instructions sysvar (required by Metaplex CreateV1).
+    #[account(address = INSTRUCTIONS_SYSVAR_ID)]
+    pub sysvar_instructions: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 /* ------------------------------- events --------------------------------- */

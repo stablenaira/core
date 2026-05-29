@@ -4,26 +4,26 @@
   "domainId": 97,
   "label": "BSC Testnet",
   "explorerUrl": "https://testnet.bscscan.com",
-  "deployer": "0x39e67B9238B874f74233692454E2D04E9fC68363",
-  "deployedAt": "2026-05-05T07:57:27.381Z",
+  "deployer": "0x2503Cba0edfEe3F790D14bA141b92B11816EC987",
+  "deployedAt": "2026-05-21T07:43:27.364Z",
   "contracts": {
-    "stableNaira": "0x268D7Da9ED4C8e2C658E360aAB9D2bC0D585491a",
-    "stableNairaImpl": "0x19DB273FddE8e3Bd144facD42DB45D856c32c114",
-    "stableNairaDeployer": "0xe096818AC2f65244a531C19Ce7c428B95934B212",
-    "validatorRegistry": "0xB2941B665dC82E448E5795aDCa5278EeaA5a5416",
-    "validatorRegistryImpl": "0xcf3E13C3e2eed36D7a7C9ac8B0B1b9C4a77fD1Ed",
-    "verifier": "0x4fa536dc2fB1dDB644C03D0828F59E2BCe8eE308",
-    "messageTransmitter": "0xD2Dcf67dA63989dbd7660f9D7840DecB7e863Ef4",
-    "messageTransmitterImpl": "0x347c8061ccba0f53aDA1c1d2c76748F2fd63Cf19",
-    "tokenMessenger": "0x0Bf49f518F9B0f2072aC240a08408533ec745f71",
-    "tokenMessengerImpl": "0xC2C3DfDe07B52A7730EFfD94fA5f444F70215940",
+    "stableNaira": "0xFB47B844a38c892e5aAE6B8eFbFdBA8517a349dE",
+    "stableNairaImpl": "0xDf2D5C7Fdc5c6Ad2c2bf14317Bbb3a7F5B6c9F96",
+    "stableNairaDeployer": "0xb48A78233F8EbAeAac974192ea45dAaf3f72fe8a",
+    "validatorRegistry": "0xB4da671A27E524349b65Eba0761E3F04adAe0b3F",
+    "validatorRegistryImpl": "0xdAaF497B209aCf3E578B320BcB4CbA44783aAcb2",
+    "verifier": "0xB7a3aE9000D1e6fddddc372932953E7A336AF17f",
+    "messageTransmitter": "0x05ea5adfad4618B4bFB1abF34f9c207c22F678dE",
+    "messageTransmitterImpl": "0x80c3a30d735C952Bd0849385Bbf85610E4d294AE",
+    "tokenMessenger": "0x534ffE8ac515BC5aB681D86973748D85041bFE8D",
+    "tokenMessengerImpl": "0xD236815d2cB0a63dC0af1Dbd6f005CAbc63Ec669",
     "priceOracle": "0xb849424A7770C22c19bCBffA9B991f4130013ae2"
   },
   "configuration": {
     "tokenName": "StableNaira",
     "tokenSymbol": "SNR",
     "validators": [
-      "0x39e67B9238B874f74233692454E2D04E9fC68363"
+      "0x2503Cba0edfEe3F790D14bA141b92B11816EC987"
     ],
     "threshold": 1,
     "feeBps": 0,
@@ -37,24 +37,5 @@
       "quorum": 1
     }
   },
-  "remoteRouters": [
-    {
-      "domainId": 11155111,
-      "router": "0x000000000000000000000000659d44add4eba432273ace3a26ec9e18783aeb69",
-      "actionId": "1",
-      "status": "committed",
-      "queuedAt": "2026-05-05T08:08:15.644Z",
-      "eta": 1777972090,
-      "committedAt": "2026-05-05T09:10:03.018Z"
-    },
-    {
-      "domainId": 84532,
-      "router": "0x000000000000000000000000ac12ca07fea1198b9e0e194e4ebbf9fa2b940ce8",
-      "actionId": "2",
-      "status": "committed",
-      "queuedAt": "2026-05-05T08:08:22.976Z",
-      "eta": 1777972098,
-      "committedAt": "2026-05-05T09:10:10.278Z"
-    }
-  ]
+  "remoteRouters": []
 }

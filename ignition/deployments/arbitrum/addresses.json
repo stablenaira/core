@@ -1,0 +1,117 @@
+{
+  "network": "arbitrum",
+  "chainId": 42161,
+  "domainId": 42161,
+  "label": "Arbitrum One Mainnet",
+  "explorerUrl": "https://arbiscan.io",
+  "deployer": "0x2503Cba0edfEe3F790D14bA141b92B11816EC987",
+  "deployedAt": "2026-05-21T17:54:34.734Z",
+  "contracts": {
+    "stableNaira": "0x364A50890d540bDDc981350cff25FF74887A2B0d",
+    "stableNairaImpl": "0x52138848b676Ca3E1385DAeCe0633057b322b6E8",
+    "stableNairaDeployer": "0xdAaF497B209aCf3E578B320BcB4CbA44783aAcb2",
+    "validatorRegistry": "0x80c3a30d735C952Bd0849385Bbf85610E4d294AE",
+    "validatorRegistryImpl": "0xB7a3aE9000D1e6fddddc372932953E7A336AF17f",
+    "verifier": "0x05ea5adfad4618B4bFB1abF34f9c207c22F678dE",
+    "messageTransmitter": "0x534ffE8ac515BC5aB681D86973748D85041bFE8D",
+    "messageTransmitterImpl": "0xD236815d2cB0a63dC0af1Dbd6f005CAbc63Ec669",
+    "tokenMessenger": "0x6d1F0b29018C9a846ee660f22299f4CeA71dedD3",
+    "tokenMessengerImpl": "0xF6105903E89000264E2296ECceE0aFC41B4A3b3b"
+  },
+  "configuration": {
+    "tokenName": "StableNaira",
+    "tokenSymbol": "SNR",
+    "validators": [
+      "0x2503Cba0edfEe3F790D14bA141b92B11816EC987"
+    ],
+    "threshold": 1,
+    "feeBps": 0,
+    "maxMessageBodySize": 4096,
+    "minterRoleGranted": true
+  },
+  "remoteRouters": [
+    {
+      "domainId": 56,
+      "router": "0x000000000000000000000000be1ed9d08141d4c8331ba30ecb64ff42f1512f31",
+      "actionId": "1",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:13:45.922Z",
+      "eta": 1779401625,
+      "committedAt": "2026-05-21T22:34:06.988Z"
+    },
+    {
+      "domainId": 1,
+      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
+      "actionId": "2",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:13:48.215Z",
+      "eta": 1779401628,
+      "committedAt": "2026-05-21T22:34:09.052Z"
+    },
+    {
+      "domainId": 8453,
+      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
+      "actionId": "3",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:13:50.934Z",
+      "eta": 1779401630,
+      "committedAt": "2026-05-21T22:34:11.344Z"
+    },
+    {
+      "domainId": 42420,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "actionId": "4",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:13:53.258Z",
+      "eta": 1779401633,
+      "committedAt": "2026-05-21T22:34:13.276Z"
+    },
+    {
+      "domainId": 137,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "actionId": "5",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:13:55.539Z",
+      "eta": 1779401635,
+      "committedAt": "2026-05-21T22:34:16.194Z"
+    },
+    {
+      "domainId": 43114,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "actionId": "6",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:13:58.106Z",
+      "eta": 1779401637,
+      "committedAt": "2026-05-21T22:34:18.464Z"
+    },
+    {
+      "domainId": 10,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "actionId": "7",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:14:00.829Z",
+      "eta": 1779401640,
+      "committedAt": "2026-05-21T22:34:20.569Z"
+    },
+    {
+      "domainId": 101,
+      "router": "0x761aa100ac1ff3806092f100b3f267d01b3b099ec8ff8c3522f9d31b187ec9ee",
+      "actionId": "8",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:18:14.587Z",
+      "eta": 1779401894,
+      "label": "Solana",
+      "committedAt": "2026-05-21T22:34:22.681Z"
+    },
+    {
+      "domainId": 1000001,
+      "router": "0xbf29fc2a8301b02adb4cd3231ed553ee40eeb794adbb6df7f3bafd20099fca5d",
+      "actionId": "9",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:18:17.228Z",
+      "eta": 1779401896,
+      "label": "TON",
+      "committedAt": "2026-05-21T22:34:24.824Z"
+    }
+  ]
+}

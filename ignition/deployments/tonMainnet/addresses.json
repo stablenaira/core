@@ -29,14 +29,29 @@
   },
   "remoteRouters": [
     {
+      "domain": 1,
+      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
+      "label": "Ethereum"
+    },
+    {
+      "domain": 10,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "label": "Optimism"
+    },
+    {
       "domain": 56,
       "router": "0x000000000000000000000000be1ed9d08141d4c8331ba30ecb64ff42f1512f31",
       "label": "BSC"
     },
     {
-      "domain": 1,
-      "router": "0x000000000000000000000000afe9bbce49428ec10f833190cfdc19eb72a1b59f",
-      "label": "Ethereum"
+      "domain": 101,
+      "router": "0x761aa100ac1ff3806092f100b3f267d01b3b099ec8ff8c3522f9d31b187ec9ee",
+      "label": "Solana"
+    },
+    {
+      "domain": 137,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "label": "Polygon"
     },
     {
       "domain": 8453,
@@ -44,9 +59,19 @@
       "label": "Base"
     },
     {
+      "domain": 42161,
+      "router": "0x0000000000000000000000006d1f0b29018c9a846ee660f22299f4cea71dedd3",
+      "label": "Arbitrum"
+    },
+    {
       "domain": 42420,
       "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
       "label": "AssetChain"
+    },
+    {
+      "domain": 43114,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "label": "Avalanche"
     }
   ]
 }

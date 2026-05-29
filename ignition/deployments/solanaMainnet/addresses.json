@@ -33,10 +33,11 @@
       "lastDeployedSlot": 421198420
     },
     "stable_naira": {
-      "programId": "7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD",
+      "programId": "3LvP2DLRMJbgbzhaa7rGVqDM7Y9wJgHsvsEkWXCzMUHy",
       "sizeBytes": 328088,
       "deployTxSignature": "5XyLW22Bq8PutNs3Xv8Z7GmefxjDuzcRaFYUPuiJ598TCth4TEx8dk6ycQvxJRyF9p7XsqtdgS8B3AEEBXjdwoPf",
-      "lastDeployedSlot": 421198504
+      "lastDeployedSlot": 421198504,
+      "_note": "v2 controller (stable_naira_v2). v1 program 7EXTBay4r4Ft3k5poXnhxMCQXe5s5yv2kfxMiA7babYD was closed on 2026-05-27 during the Token-2022 → classic SPL cutover."
     }
   },
   "deployCostSol": "8.1146",
@@ -59,14 +60,15 @@
     "feeBps": 0,
     "feeRecipient": "CSwhhHuiBqxE5fZr6ggDKUePh9gKKMTUFPVtFV6iNuL2",
     "admin": "CSwhhHuiBqxE5fZr6ggDKUePh9gKKMTUFPVtFV6iNuL2",
-    "tokenStandard": "Token-2022 with PermanentDelegate + Pausable extensions",
+    "tokenStandard": "Classic SPL Token (no Token-2022 extensions; v2 cutover 2026-05-27 — unblocks permissionless DEX listings on Raydium CPMM/CLMM)",
     "decimals": 2
   },
   "initializedAccounts": {
     "snrMint": {
-      "address": "4zMkZY5ytjG5gLLEQL4FQcuFJfHdiDZLmKsaGGXNytt",
-      "kind": "Token-2022 mint owned by stable_naira config PDA",
-      "initTxSignature": "5j9MYWdgzVh4g4DXyAuTerLJfcaFmx5HbHFwchUkJrwQdQkf8p7mfix13ZQiRrjGSx85Ctw1osjVW6Fmt5zUVx1b"
+      "address": "2Je72EPqUXuyNGrM95D9RczAPjEarAgrKHQMu2xxrF5D",
+      "kind": "Classic SPL Token mint owned by stable_naira_v2 config PDA",
+      "initTxSignature": "5j9MYWdgzVh4g4DXyAuTerLJfcaFmx5HbHFwchUkJrwQdQkf8p7mfix13ZQiRrjGSx85Ctw1osjVW6Fmt5zUVx1b",
+      "_note": "v2 mint (cutover 2026-05-27). v1 Token-2022 mint 4zMkZY5ytjG5gLLEQL4FQcuFJfHdiDZLmKsaGGXNytt is permanently mint-locked (0 supply) after v1 program closure."
     },
     "stableNairaConfig": {
       "pda": "FP5UNUMh9sroxQU4co2ABRxgKMAFnAcnUVg5DAgd9LYo",

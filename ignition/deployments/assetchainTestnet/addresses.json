@@ -1,11 +1,11 @@
 {
-  "network": "sepolia",
-  "chainId": 11155111,
-  "domainId": 11155111,
-  "label": "Ethereum Sepolia",
-  "explorerUrl": "https://sepolia.etherscan.io",
+  "network": "assetchainTestnet",
+  "chainId": 42421,
+  "domainId": 42421,
+  "label": "Asset Chain Testnet",
+  "explorerUrl": "https://scan-testnet.assetchain.org",
   "deployer": "0x2503Cba0edfEe3F790D14bA141b92B11816EC987",
-  "deployedAt": "2026-05-21T07:45:25.558Z",
+  "deployedAt": "2026-05-21T07:43:15.057Z",
   "contracts": {
     "stableNaira": "0xFB47B844a38c892e5aAE6B8eFbFdBA8517a349dE",
     "stableNairaImpl": "0xDf2D5C7Fdc5c6Ad2c2bf14317Bbb3a7F5B6c9F96",

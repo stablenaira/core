@@ -6,7 +6,6 @@
   "explorerUrl": "https://etherscan.io",
   "deployer": "0x2503Cba0edfEe3F790D14bA141b92B11816EC987",
   "deployedAt": "2026-05-05T14:10:53.276Z",
-  "_currentOwnerSince": "2026-05-21T11:00:00Z",
   "contracts": {
     "stableNaira": "0xfaE7C1AD37b7ad8848f840109332793bC5889563",
     "stableNairaImpl": "0x945aC9072BE1d49EEc62b59b41B0a544F47F088d",
@@ -50,6 +49,71 @@
       "queuedAt": "2026-05-05T14:19:15.316Z",
       "eta": 1777994351,
       "committedAt": "2026-05-05T15:21:02.602Z"
+    },
+    {
+      "domainId": 42420,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "actionId": "3",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:09:02.426Z",
+      "eta": 1779401339,
+      "committedAt": "2026-05-21T22:28:02.417Z"
+    },
+    {
+      "domainId": 137,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "actionId": "4",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:09:27.862Z",
+      "eta": 1779401363,
+      "committedAt": "2026-05-21T22:28:14.607Z"
+    },
+    {
+      "domainId": 43114,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "actionId": "5",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:09:40.160Z",
+      "eta": 1779401375,
+      "committedAt": "2026-05-21T22:29:51.077Z"
+    },
+    {
+      "domainId": 42161,
+      "router": "0x0000000000000000000000006d1f0b29018c9a846ee660f22299f4cea71dedd3",
+      "actionId": "6",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:10:14.483Z",
+      "eta": 1779401411,
+      "committedAt": "2026-05-21T22:30:15.585Z"
+    },
+    {
+      "domainId": 10,
+      "router": "0x000000000000000000000000534ffe8ac515bc5ab681d86973748d85041bfe8d",
+      "actionId": "7",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:10:30.485Z",
+      "eta": 1779401423,
+      "committedAt": "2026-05-21T22:30:26.077Z"
+    },
+    {
+      "domainId": 101,
+      "router": "0x761aa100ac1ff3806092f100b3f267d01b3b099ec8ff8c3522f9d31b187ec9ee",
+      "actionId": "8",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:16:37.122Z",
+      "eta": 1779401795,
+      "label": "Solana",
+      "committedAt": "2026-05-21T22:30:40.748Z"
+    },
+    {
+      "domainId": 1000001,
+      "router": "0xbf29fc2a8301b02adb4cd3231ed553ee40eeb794adbb6df7f3bafd20099fca5d",
+      "actionId": "9",
+      "status": "committed",
+      "queuedAt": "2026-05-21T21:17:18.310Z",
+      "eta": 1779401831,
+      "label": "TON",
+      "committedAt": "2026-05-21T22:30:51.897Z"
     }
   ]
 }

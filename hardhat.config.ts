@@ -280,11 +280,14 @@ const config: HardhatUserConfig = {
           browserURL: "https://scan-testnet.assetchain.org",
         },
       },
+      // Snowtrace is Routescan-powered as of 2024. Etherscan V2 returns "Free API
+      // access is not supported for this chain" on Avalanche; Routescan is free
+      // and ignores the API key, so we route Avalanche verification there.
       {
         network: "avalanche",
         chainId: 43114,
         urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
+          apiURL: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
           browserURL: "https://snowtrace.io",
         },
       },
@@ -292,7 +295,7 @@ const config: HardhatUserConfig = {
         network: "avalancheFuji",
         chainId: 43113,
         urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
+          apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
           browserURL: "https://testnet.snowtrace.io",
         },
       },
