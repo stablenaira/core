@@ -23,7 +23,9 @@ import type {
 } from "../common";
 
 export interface StableNairaUUPSDeployerInterface extends Interface {
-  getFunction(nameOrSignature: "deploy"): FunctionFragment;
+  getFunction(
+    nameOrSignature: "deploy" | "deployDeterministic"
+  ): FunctionFragment;
 
   getEvent(nameOrSignatureOrTopic: "Deployed"): EventFragment;
 
@@ -31,8 +33,16 @@ export interface StableNairaUUPSDeployerInterface extends Interface {
     functionFragment: "deploy",
     values: [string, string, AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "deployDeterministic",
+    values: [BytesLike, string, string, AddressLike]
+  ): string;
 
   decodeFunctionResult(functionFragment: "deploy", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "deployDeterministic",
+    data: BytesLike
+  ): Result;
 }
 
 export namespace DeployedEvent {
@@ -97,6 +107,17 @@ export interface StableNairaUUPSDeployer extends BaseContract {
     "nonpayable"
   >;
 
+  deployDeterministic: TypedContractMethod<
+    [
+      salt: BytesLike,
+      name_: string,
+      symbol_: string,
+      initialAdmin: AddressLike
+    ],
+    [[string, string] & { implementation: string; proxy: string }],
+    "nonpayable"
+  >;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
@@ -105,6 +126,18 @@ export interface StableNairaUUPSDeployer extends BaseContract {
     nameOrSignature: "deploy"
   ): TypedContractMethod<
     [name_: string, symbol_: string, initialAdmin: AddressLike],
+    [[string, string] & { implementation: string; proxy: string }],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "deployDeterministic"
+  ): TypedContractMethod<
+    [
+      salt: BytesLike,
+      name_: string,
+      symbol_: string,
+      initialAdmin: AddressLike
+    ],
     [[string, string] & { implementation: string; proxy: string }],
     "nonpayable"
   >;

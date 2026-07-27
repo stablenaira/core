@@ -5,9 +5,10 @@ import "dotenv/config";
 
 import type { HardhatUserConfig } from "hardhat/config";
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY || "privatKey";
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || BSCSCAN_API_KEY;
+const PRIVATE_KEY_ACCOUNT = PRIVATE_KEY && /^(0x)?[a-fA-F0-9]{64}$/.test(PRIVATE_KEY) ? [PRIVATE_KEY] : [];
 
 /** Override with your own RPC if the default is flaky (fixes Ignition gas-estimate / call mismatch). */
 const BSC_TESTNET_RPC =
@@ -66,96 +67,96 @@ const config: HardhatUserConfig = {
     testnet: {
       url: BSC_TESTNET_RPC,
       chainId: 97,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
       timeout: 120_000,
     },
     mainnet: {
       url: BSC_MAINNET_RPC,
       chainId: 56,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     ethereum: {
       url: ETHEREUM_MAINNET_RPC,
       chainId: 1,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     sepolia: {
       url: ETHEREUM_SEPOLIA_RPC,
       chainId: 11155111,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     holesky: {
       url: ETHEREUM_HOLESKY_RPC,
       chainId: 17000,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     base: {
       url: BASE_MAINNET_RPC,
       chainId: 8453,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     baseSepolia: {
       url: BASE_SEPOLIA_RPC,
       chainId: 84532,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     arbitrum: {
       url: ARBITRUM_MAINNET_RPC,
       chainId: 42161,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     arbitrumSepolia: {
       url: ARBITRUM_SEPOLIA_RPC,
       chainId: 421614,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     polygon: {
       url: POLYGON_MAINNET_RPC,
       chainId: 137,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     polygonAmoy: {
       url: POLYGON_AMOY_RPC,
       chainId: 80002,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     polygonMumbai: {
       url: POLYGON_MUMBAI_RPC,
       chainId: 80001,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     assetchain: {
       url: ASSETCHAIN_MAINNET_RPC,
       chainId: 42420,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
       timeout: 120_000,
     },
     assetchainTestnet: {
       url: ASSETCHAIN_TESTNET_RPC,
       chainId: 42421,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
       timeout: 120_000,
     },
     avalanche: {
       url: AVALANCHE_MAINNET_RPC,
       chainId: 43114,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     avalancheFuji: {
       url: AVALANCHE_FUJI_RPC,
       chainId: 43113,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
       timeout: 120_000,
     },
     optimism: {
       url: OPTIMISM_MAINNET_RPC,
       chainId: 10,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
     },
     optimismSepolia: {
       url: OPTIMISM_SEPOLIA_RPC,
       chainId: 11155420,
-      accounts: [PRIVATE_KEY],
+      ...(PRIVATE_KEY_ACCOUNT.length ? { accounts: PRIVATE_KEY_ACCOUNT } : {}),
       timeout: 120_000,
     },
   },
