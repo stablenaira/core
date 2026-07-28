@@ -3,18 +3,30 @@ import fs from "fs";
 import path from "path";
 import hre, { ethers } from "hardhat";
 
+export function buildProxyVerificationArgs(
+  implementationAddress: string,
+  initData: string,
+) {
+  return [implementationAddress, initData];
+}
+
 const envFile = path.join(process.cwd(), ".env");
 if (fs.existsSync(envFile)) {
   // dotenv/config already loads .env from the current working directory.
 }
 
-async function verifyOnExplorer(address: string, constructorArgs: unknown[] = []) {
+async function verifyOnExplorer(
+  address: string,
+  constructorArgs: unknown[] = [],
+  contractName?: string,
+) {
   if (hre.network.name === "hardhat" || hre.network.name === "localhost") {
     console.log(`Skipping verification on local network ${hre.network.name}`);
     return;
   }
 
-  const explorerApiKey = process.env.BSCSCAN_API_KEY || process.env.ETHERSCAN_API_KEY;
+  const explorerApiKey =
+    process.env.BSCSCAN_API_KEY || process.env.ETHERSCAN_API_KEY;
   if (!explorerApiKey) {
     console.log("No explorer API key found; skipping verification.");
     return;
@@ -24,12 +36,19 @@ async function verifyOnExplorer(address: string, constructorArgs: unknown[] = []
   await hre.run("verify:verify", {
     address,
     constructorArguments: constructorArgs,
+    ...(contractName ? { contract: contractName } : {}),
   });
 }
 
 async function main() {
-  if (hre.network.name !== "hardhat" && hre.network.name !== "localhost" && !process.env.PRIVATE_KEY) {
-    throw new Error(`PRIVATE_KEY is required for network "${hre.network.name}". Set it in your environment before running this script.`);
+  if (
+    hre.network.name !== "hardhat" &&
+    hre.network.name !== "localhost" &&
+    !process.env.PRIVATE_KEY
+  ) {
+    throw new Error(
+      `PRIVATE_KEY is required for network "${hre.network.name}". Set it in your environment before running this script.`,
+    );
   }
 
   const [deployer] = await ethers.getSigners();
@@ -39,8 +58,11 @@ async function main() {
   const tokenSymbol = process.env.TOKEN_SYMBOL || "SNR";
   const initialAdmin = process.env.INITIAL_ADMIN || deployerAddress;
   const commitSha = process.env.COMMIT_SHA || "unknown";
-  const deterministic = process.env.DETERMINISTIC === "1" || process.env.DETERMINISTIC === "true";
-  const saltInput = process.env.DETERMINISTIC_SALT || ethers.id(`${tokenName}:${tokenSymbol}:${initialAdmin}`);
+  const deterministic =
+    process.env.DETERMINISTIC === "1" || process.env.DETERMINISTIC === "true";
+  const saltInput =
+    process.env.DETERMINISTIC_SALT ||
+    ethers.id(`${tokenName}:${tokenSymbol}:${initialAdmin}`);
   const salt = ethers.zeroPadValue(saltInput, 32);
 
   console.log("Deploying upgradeable StableNaira token...");
@@ -53,16 +75,20 @@ async function main() {
     console.log(`Deterministic deployment enabled with salt: ${salt}`);
   }
 
-  const factory = await ethers.getContractFactory("StableNairaUUPSDeployer");
-  const deployment = deterministic
-    ? await factory.deployDeterministic(salt, tokenName, tokenSymbol, initialAdmin)
-    : await factory.deploy(tokenName, tokenSymbol, initialAdmin);
-  await deployment.waitForDeployment();
+  const deployerFactory = await ethers.getContractFactory(
+    "StableNairaUUPSDeployer",
+  );
+  const deployerContract = await deployerFactory.deploy();
+  await deployerContract.waitForDeployment();
 
-  const deploymentTx = deployment.deploymentTransaction();
-  if (!deploymentTx) {
-    throw new Error("Deployment transaction was not created");
-  }
+  const deploymentTx = deterministic
+    ? await deployerContract.deployDeterministic(
+        salt,
+        tokenName,
+        tokenSymbol,
+        initialAdmin,
+      )
+    : await deployerContract.deploy(tokenName, tokenSymbol, initialAdmin);
 
   const receipt = await deploymentTx.wait();
   if (!receipt) {
@@ -90,11 +116,20 @@ async function main() {
   }
 
   if (!implementationAddress || !proxyAddress) {
-    throw new Error("Could not find the Deployed event for the proxy deployment");
+    throw new Error(
+      "Could not find the Deployed event for the proxy deployment",
+    );
   }
 
   const token = await ethers.getContractAt("StableNaira", proxyAddress);
-  const [nameOnChain, symbolOnChain] = await Promise.all([token.name(), token.symbol()]);
+  const initData = ethers.AbiCoder.defaultAbiCoder().encode(
+    ["string", "string", "address"],
+    [tokenName, tokenSymbol, initialAdmin],
+  );
+  const [nameOnChain, symbolOnChain] = await Promise.all([
+    token.name(),
+    token.symbol(),
+  ]);
   const adminRole = await token.DEFAULT_ADMIN_ROLE();
   const hasAdminRole = await token.hasRole(adminRole, initialAdmin);
 
@@ -114,12 +149,23 @@ async function main() {
 
   const outputDir = path.join(process.cwd(), "deployments");
   fs.mkdirSync(outputDir, { recursive: true });
-  const outputPath = path.join(outputDir, `stable-naira-${hre.network.name}.json`);
+  const outputPath = path.join(
+    outputDir,
+    `stable-naira-${hre.network.name}.json`,
+  );
   fs.writeFileSync(outputPath, JSON.stringify(deploymentResult, null, 2));
 
   try {
-    await verifyOnExplorer(implementationAddress);
-    await verifyOnExplorer(proxyAddress, []);
+    await verifyOnExplorer(
+      implementationAddress,
+      [],
+      "contracts/StableNaira.sol:StableNaira",
+    );
+    await verifyOnExplorer(
+      proxyAddress,
+      buildProxyVerificationArgs(implementationAddress, initData),
+      "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy",
+    );
   } catch (error) {
     console.warn("Explorer verification failed:", error);
   }

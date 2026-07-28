@@ -119,6 +119,52 @@ describe("StableNaira", () => {
       ).to.be.revertedWithCustomError(stableNaira, "EnforcedPause");
     });
 
+    it("queue + commit mint after timelock succeeds", async () => {
+      const { stableNaira, admin, alice } = await loadFixture(fixture);
+      const tx = await stableNaira.connect(admin).queueMint(alice.address, 500n);
+      const receipt = await tx.wait();
+      const evt = receipt!.logs.find((l: any) => l.fragment?.name === "MintQueued") as any;
+      const actionId = evt.args.actionId as bigint;
+
+      await expect(
+        stableNaira.commitMint(actionId, alice.address, 500n)
+      ).to.be.revertedWithCustomError(stableNaira, "ActionNotReady");
+
+      await time.increase(3600 + 1);
+
+      await expect(
+        stableNaira.connect(admin).commitMint(actionId, alice.address, 500n)
+      )
+        .to.emit(stableNaira, "MintCommitted")
+        .withArgs(actionId, alice.address, 500n);
+      expect(await stableNaira.balanceOf(alice.address)).to.equal(500n);
+
+      await expect(
+        stableNaira.connect(admin).commitMint(actionId, alice.address, 500n)
+      ).to.be.revertedWithCustomError(stableNaira, "ActionNotFound");
+    });
+
+    it("non-admin cannot queue mint", async () => {
+      const { stableNaira, alice } = await loadFixture(fixture);
+      await expect(
+        stableNaira.connect(alice).queueMint(alice.address, 1n)
+      ).to.be.revertedWithCustomError(stableNaira, "AccessControlUnauthorizedAccount");
+    });
+
+    it("admin can cancel queued mint", async () => {
+      const { stableNaira, admin, alice } = await loadFixture(fixture);
+      const tx = await stableNaira.connect(admin).queueMint(alice.address, 100n);
+      const receipt = await tx.wait();
+      const evt = receipt!.logs.find((l: any) => l.fragment?.name === "MintQueued") as any;
+      const actionId = evt.args.actionId as bigint;
+
+      await stableNaira.connect(admin).cancelMint(actionId);
+      await time.increase(3600 + 1);
+      await expect(
+        stableNaira.connect(admin).commitMint(actionId, alice.address, 100n)
+      ).to.be.revertedWithCustomError(stableNaira, "ActionNotFound");
+    });
+
     it("mintCap=0 means uncapped; nonzero cap is enforced", async () => {
       const { stableNaira, admin, alice } = await loadFixture(fixture);
       // Uncapped: very large mint succeeds.

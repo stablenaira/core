@@ -8,39 +8,54 @@ import type { HardhatUserConfig } from "hardhat/config";
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || BSCSCAN_API_KEY;
-const PRIVATE_KEY_ACCOUNT = PRIVATE_KEY && /^(0x)?[a-fA-F0-9]{64}$/.test(PRIVATE_KEY) ? [PRIVATE_KEY] : [];
+const PRIVATE_KEY_ACCOUNT =
+  PRIVATE_KEY && /^(0x)?[a-fA-F0-9]{64}$/.test(PRIVATE_KEY)
+    ? [PRIVATE_KEY]
+    : [];
 
 /** Override with your own RPC if the default is flaky (fixes Ignition gas-estimate / call mismatch). */
 const BSC_TESTNET_RPC =
-  process.env.BSC_TESTNET_RPC_URL || "https://data-seed-prebsc-1-s1.binance.org:8545/";
-const BSC_MAINNET_RPC = process.env.BSC_MAINNET_RPC_URL || "https://bsc-dataseed.binance.org/";
+  process.env.BSC_TESTNET_RPC_URL ||
+  "https://data-seed-prebsc-1-s1.binance.org:8545/";
+const BSC_MAINNET_RPC =
+  process.env.BSC_MAINNET_RPC_URL || "https://bsc-dataseed.binance.org/";
 const ETHEREUM_MAINNET_RPC =
   process.env.ETHEREUM_MAINNET_RPC_URL || "https://ethereum-rpc.publicnode.com";
 const ETHEREUM_SEPOLIA_RPC =
-  process.env.ETHEREUM_SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com";
+  process.env.ETHEREUM_SEPOLIA_RPC_URL ||
+  "https://ethereum-sepolia-rpc.publicnode.com";
 const ETHEREUM_HOLESKY_RPC =
-  process.env.ETHEREUM_HOLESKY_RPC_URL || "https://ethereum-holesky-rpc.publicnode.com";
-const BASE_MAINNET_RPC = process.env.BASE_MAINNET_RPC_URL || "https://mainnet.base.org";
-const BASE_SEPOLIA_RPC = process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org";
+  process.env.ETHEREUM_HOLESKY_RPC_URL ||
+  "https://ethereum-holesky-rpc.publicnode.com";
+const BASE_MAINNET_RPC =
+  process.env.BASE_MAINNET_RPC_URL || "https://mainnet.base.org";
+const BASE_SEPOLIA_RPC =
+  process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org";
 const ARBITRUM_MAINNET_RPC =
   process.env.ARBITRUM_MAINNET_RPC_URL || "https://arb1.arbitrum.io/rpc";
 const ARBITRUM_SEPOLIA_RPC =
-  process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc";
-const POLYGON_MAINNET_RPC = process.env.POLYGON_MAINNET_RPC_URL || "https://polygon-rpc.com";
-const POLYGON_AMOY_RPC = process.env.POLYGON_AMOY_RPC_URL || "https://rpc-amoy.polygon.technology";
+  process.env.ARBITRUM_SEPOLIA_RPC_URL ||
+  "https://sepolia-rollup.arbitrum.io/rpc";
+const POLYGON_MAINNET_RPC =
+  process.env.POLYGON_MAINNET_RPC_URL || "https://polygon-rpc.com";
+const POLYGON_AMOY_RPC =
+  process.env.POLYGON_AMOY_RPC_URL || "https://rpc-amoy.polygon.technology";
 const POLYGON_MUMBAI_RPC =
   process.env.POLYGON_MUMBAI_RPC_URL || "https://rpc-mumbai.maticvigil.com";
 // Asset Chain (Xend Finance RWA L1) — EVM-compatible, Blockscout explorer.
 const ASSETCHAIN_MAINNET_RPC =
-  process.env.ASSETCHAIN_MAINNET_RPC_URL || "https://mainnet-rpc.assetchain.org";
+  process.env.ASSETCHAIN_MAINNET_RPC_URL ||
+  "https://mainnet-rpc.assetchain.org";
 const ASSETCHAIN_TESTNET_RPC =
   process.env.ASSETCHAIN_TESTNET_RPC_URL || "https://enugu-rpc.assetchain.org";
 // Avalanche C-Chain — EVM-compatible, deterministic instant finality (no
 // reorgs once accepted). Snowtrace verification via the Etherscan V2 API.
 const AVALANCHE_MAINNET_RPC =
-  process.env.AVALANCHE_MAINNET_RPC_URL || "https://api.avax.network/ext/bc/C/rpc";
+  process.env.AVALANCHE_MAINNET_RPC_URL ||
+  "https://api.avax.network/ext/bc/C/rpc";
 const AVALANCHE_FUJI_RPC =
-  process.env.AVALANCHE_FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
+  process.env.AVALANCHE_FUJI_RPC_URL ||
+  "https://api.avax-test.network/ext/bc/C/rpc";
 // Optimism (OP Stack L2) — EVM-compatible, L1-derived finality (same profile
 // as Base, which is itself OP Stack). Optimistic Etherscan via Etherscan V2.
 const OPTIMISM_MAINNET_RPC =
@@ -61,7 +76,7 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       // For multi-phase script smoke tests against a `npx hardhat node`.
-      url: "http://127.0.0.1:8545",
+      url: process.env.LOCALHOST_URL || "http://127.0.0.1:8545",
       chainId: 31337,
     },
     testnet: {
@@ -288,7 +303,8 @@ const config: HardhatUserConfig = {
         network: "avalanche",
         chainId: 43114,
         urls: {
-          apiURL: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
+          apiURL:
+            "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
           browserURL: "https://snowtrace.io",
         },
       },
@@ -296,7 +312,8 @@ const config: HardhatUserConfig = {
         network: "avalancheFuji",
         chainId: 43113,
         urls: {
-          apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
+          apiURL:
+            "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
           browserURL: "https://testnet.snowtrace.io",
         },
       },

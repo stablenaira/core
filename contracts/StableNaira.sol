@@ -12,6 +12,7 @@ pragma solidity ^0.8.28;
   - AccessControlEnumerable roles; EIP-2612 permit; optional mintCap.
   - Pausable, freeze blocklist, seize (forced transfer).
   - UUPS upgrades pass through a queue/commit timelock (1-hour minimum, admin-adjustable upward).
+  - Sensitive admin mint operations may also be queued and committed after the same timelock.
 
   SECURITY NOTES (audit findings — see contract-audit reports for details)
   - HIGH-03: `burnFrom(account, amount)` is gated only by MINTER_ROLE. It does NOT
@@ -47,6 +48,7 @@ contract StableNaira is
     bytes32 public constant FREEZER_ROLE = keccak256("FREEZER_ROLE");
     bytes32 public constant SEIZER_ROLE = keccak256("SEIZER_ROLE");
 
+    bytes32 private constant DOMAIN_MINT = keccak256("StableNaira.Mint.v1");
     bytes32 private constant DOMAIN_UPGRADE = keccak256("StableNaira.Upgrade.v1");
 
     uint8 private constant DECIMALS = 2;
@@ -78,6 +80,8 @@ contract StableNaira is
     event AccountFrozen(address indexed account);
     event AccountUnfrozen(address indexed account);
     event FundsSeized(address indexed from, address indexed to, uint256 amount);
+    event MintQueued(uint256 indexed actionId, address indexed to, uint256 amount);
+    event MintCommitted(uint256 indexed actionId, address indexed to, uint256 amount);
     event UpgradeQueued(uint256 indexed actionId, address indexed newImpl);
     event UpgradeCommitted(uint256 indexed actionId, address indexed newImpl);
 
@@ -193,6 +197,30 @@ contract StableNaira is
         return true;
     }
 
+    /// @notice Queue a sensitive mint operation keyed by recipient and amount.
+    /// @dev Caller must be admin; action can be committed after the configured timelock.
+    function queueMint(address to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 actionId) {
+        if (to == address(0)) revert ZeroAddress();
+        actionId = _queueAction(_hashMint(to, amount));
+        emit MintQueued(actionId, to, amount);
+    }
+
+    /// @notice Commit a previously queued mint after the timelock has elapsed.
+    /// @dev The supplied args must match the queued action hash exactly.
+    function commitMint(uint256 actionId, address to, uint256 amount) external {
+        _consumeAction(actionId, _hashMint(to, amount));
+        if (to == address(0)) revert ZeroAddress();
+        uint256 cap = mintCap;
+        if (cap != 0 && totalSupply() + amount > cap) revert MintCapExceeded();
+        _mint(to, amount);
+        emit MintCommitted(actionId, to, amount);
+    }
+
+    /// @notice Cancel a queued mint action before it is committed.
+    function cancelMint(uint256 actionId) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _cancelAction(actionId);
+    }
+
     function burn(uint256 amount) external whenNotPaused {
         _burn(_msgSender(), amount);
     }
@@ -275,6 +303,10 @@ contract StableNaira is
     }
 
     /* ---------------------------- internals ---------------------------- */
+
+    function _hashMint(address to, uint256 amount) private pure returns (bytes32) {
+        return keccak256(abi.encode(DOMAIN_MINT, to, amount));
+    }
 
     function _hashUpgrade(address newImpl, bytes calldata data) private pure returns (bytes32) {
         return keccak256(abi.encode(DOMAIN_UPGRADE, newImpl, keccak256(data)));

@@ -57,7 +57,9 @@ export interface StableNairaInterface extends Interface {
       | "balanceOf"
       | "burn"
       | "burnFrom"
+      | "cancelMint"
       | "cancelUpgrade"
+      | "commitMint"
       | "commitUpgrade"
       | "decimals"
       | "eip712Domain"
@@ -83,6 +85,7 @@ export interface StableNairaInterface extends Interface {
       | "pendingAction"
       | "permit"
       | "proxiableUUID"
+      | "queueMint"
       | "queueUpgrade"
       | "redeemRequest"
       | "removeFreezer"
@@ -120,6 +123,8 @@ export interface StableNairaInterface extends Interface {
       | "Initialized"
       | "MinTimelockUpdated"
       | "MintCapUpdated"
+      | "MintCommitted"
+      | "MintQueued"
       | "Paused"
       | "RedeemRequested"
       | "RoleAdminChanged"
@@ -204,8 +209,16 @@ export interface StableNairaInterface extends Interface {
     values: [AddressLike, BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "cancelMint",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "cancelUpgrade",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "commitMint",
+    values: [BigNumberish, AddressLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "commitUpgrade",
@@ -290,6 +303,10 @@ export interface StableNairaInterface extends Interface {
   encodeFunctionData(
     functionFragment: "proxiableUUID",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "queueMint",
+    values: [AddressLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "queueUpgrade",
@@ -417,10 +434,12 @@ export interface StableNairaInterface extends Interface {
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burn", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burnFrom", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "cancelMint", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "cancelUpgrade",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "commitMint", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "commitUpgrade",
     data: BytesLike
@@ -473,6 +492,7 @@ export interface StableNairaInterface extends Interface {
     functionFragment: "proxiableUUID",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "queueMint", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "queueUpgrade",
     data: BytesLike
@@ -684,6 +704,42 @@ export namespace MintCapUpdatedEvent {
   export interface OutputObject {
     previous: bigint;
     current: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MintCommittedEvent {
+  export type InputTuple = [
+    actionId: BigNumberish,
+    to: AddressLike,
+    amount: BigNumberish
+  ];
+  export type OutputTuple = [actionId: bigint, to: string, amount: bigint];
+  export interface OutputObject {
+    actionId: bigint;
+    to: string;
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MintQueuedEvent {
+  export type InputTuple = [
+    actionId: BigNumberish,
+    to: AddressLike,
+    amount: BigNumberish
+  ];
+  export type OutputTuple = [actionId: bigint, to: string, amount: bigint];
+  export interface OutputObject {
+    actionId: bigint;
+    to: string;
+    amount: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -957,8 +1013,20 @@ export interface StableNaira extends BaseContract {
     "nonpayable"
   >;
 
+  cancelMint: TypedContractMethod<
+    [actionId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   cancelUpgrade: TypedContractMethod<
     [actionId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  commitMint: TypedContractMethod<
+    [actionId: BigNumberish, to: AddressLike, amount: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -1070,6 +1138,12 @@ export interface StableNaira extends BaseContract {
   >;
 
   proxiableUUID: TypedContractMethod<[], [string], "view">;
+
+  queueMint: TypedContractMethod<
+    [to: AddressLike, amount: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
 
   queueUpgrade: TypedContractMethod<
     [newImpl: AddressLike, data: BytesLike],
@@ -1249,8 +1323,18 @@ export interface StableNaira extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "cancelMint"
+  ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "cancelUpgrade"
   ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "commitMint"
+  ): TypedContractMethod<
+    [actionId: BigNumberish, to: AddressLike, amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "commitUpgrade"
   ): TypedContractMethod<
@@ -1380,6 +1464,13 @@ export interface StableNaira extends BaseContract {
   getFunction(
     nameOrSignature: "proxiableUUID"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "queueMint"
+  ): TypedContractMethod<
+    [to: AddressLike, amount: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "queueUpgrade"
   ): TypedContractMethod<
@@ -1555,6 +1646,20 @@ export interface StableNaira extends BaseContract {
     MintCapUpdatedEvent.InputTuple,
     MintCapUpdatedEvent.OutputTuple,
     MintCapUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "MintCommitted"
+  ): TypedContractEvent<
+    MintCommittedEvent.InputTuple,
+    MintCommittedEvent.OutputTuple,
+    MintCommittedEvent.OutputObject
+  >;
+  getEvent(
+    key: "MintQueued"
+  ): TypedContractEvent<
+    MintQueuedEvent.InputTuple,
+    MintQueuedEvent.OutputTuple,
+    MintQueuedEvent.OutputObject
   >;
   getEvent(
     key: "Paused"
@@ -1754,6 +1859,28 @@ export interface StableNaira extends BaseContract {
       MintCapUpdatedEvent.InputTuple,
       MintCapUpdatedEvent.OutputTuple,
       MintCapUpdatedEvent.OutputObject
+    >;
+
+    "MintCommitted(uint256,address,uint256)": TypedContractEvent<
+      MintCommittedEvent.InputTuple,
+      MintCommittedEvent.OutputTuple,
+      MintCommittedEvent.OutputObject
+    >;
+    MintCommitted: TypedContractEvent<
+      MintCommittedEvent.InputTuple,
+      MintCommittedEvent.OutputTuple,
+      MintCommittedEvent.OutputObject
+    >;
+
+    "MintQueued(uint256,address,uint256)": TypedContractEvent<
+      MintQueuedEvent.InputTuple,
+      MintQueuedEvent.OutputTuple,
+      MintQueuedEvent.OutputObject
+    >;
+    MintQueued: TypedContractEvent<
+      MintQueuedEvent.InputTuple,
+      MintQueuedEvent.OutputTuple,
+      MintQueuedEvent.OutputObject
     >;
 
     "Paused(address)": TypedContractEvent<

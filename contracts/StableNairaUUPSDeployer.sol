@@ -14,7 +14,10 @@ contract StableNairaUUPSDeployer {
         address initialAdmin
     ) external returns (address implementation, address proxy) {
         StableNaira impl = new StableNaira();
-        bytes memory data = abi.encodeCall(StableNaira.initialize, (name_, symbol_, initialAdmin));
+        bytes memory data = abi.encodeCall(
+            StableNaira.initialize,
+            (name_, symbol_, initialAdmin)
+        );
         proxy = address(new ERC1967Proxy(address(impl), data));
         implementation = address(impl);
         emit Deployed(implementation, proxy);
@@ -27,7 +30,10 @@ contract StableNairaUUPSDeployer {
         address initialAdmin
     ) external returns (address implementation, address proxy) {
         StableNaira impl = new StableNaira{salt: salt}();
-        bytes memory data = abi.encodeCall(StableNaira.initialize, (name_, symbol_, initialAdmin));
+        bytes memory data = abi.encodeCall(
+            StableNaira.initialize,
+            (name_, symbol_, initialAdmin)
+        );
         proxy = address(new ERC1967Proxy{salt: salt}(address(impl), data));
         implementation = address(impl);
         emit Deployed(implementation, proxy);
