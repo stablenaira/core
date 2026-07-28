@@ -49,7 +49,8 @@ contract StableNaira is
     bytes32 public constant SEIZER_ROLE = keccak256("SEIZER_ROLE");
 
     bytes32 private constant DOMAIN_MINT = keccak256("StableNaira.Mint.v1");
-    bytes32 private constant DOMAIN_UPGRADE = keccak256("StableNaira.Upgrade.v1");
+    bytes32 private constant DOMAIN_UPGRADE =
+        keccak256("StableNaira.Upgrade.v1");
 
     uint8 private constant DECIMALS = 2;
 
@@ -76,12 +77,24 @@ contract StableNaira is
     error ZeroImpl();
 
     event MintCapUpdated(uint256 previous, uint256 current);
-    event RedeemRequested(address indexed account, uint256 amount, string offChainReference);
+    event RedeemRequested(
+        address indexed account,
+        uint256 amount,
+        string offChainReference
+    );
     event AccountFrozen(address indexed account);
     event AccountUnfrozen(address indexed account);
     event FundsSeized(address indexed from, address indexed to, uint256 amount);
-    event MintQueued(uint256 indexed actionId, address indexed to, uint256 amount);
-    event MintCommitted(uint256 indexed actionId, address indexed to, uint256 amount);
+    event MintQueued(
+        uint256 indexed actionId,
+        address indexed to,
+        uint256 amount
+    );
+    event MintCommitted(
+        uint256 indexed actionId,
+        address indexed to,
+        uint256 amount
+    );
     event UpgradeQueued(uint256 indexed actionId, address indexed newImpl);
     event UpgradeCommitted(uint256 indexed actionId, address indexed newImpl);
 
@@ -90,7 +103,11 @@ contract StableNaira is
         _disableInitializers();
     }
 
-    function initialize(string memory name_, string memory symbol_, address initialAdmin) public initializer {
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address initialAdmin
+    ) public initializer {
         __ERC20_init(name_, symbol_);
         __ERC20Permit_init(name_);
         __Pausable_init();
@@ -110,19 +127,22 @@ contract StableNaira is
 
     modifier onlyPauserOrAdmin() {
         address s = _msgSender();
-        if (!hasRole(PAUSER_ROLE, s) && !hasRole(DEFAULT_ADMIN_ROLE, s)) revert NotAuthorizedCompliance();
+        if (!hasRole(PAUSER_ROLE, s) && !hasRole(DEFAULT_ADMIN_ROLE, s))
+            revert NotAuthorizedCompliance();
         _;
     }
 
     modifier onlyFreezerOrAdmin() {
         address s = _msgSender();
-        if (!hasRole(FREEZER_ROLE, s) && !hasRole(DEFAULT_ADMIN_ROLE, s)) revert NotAuthorizedCompliance();
+        if (!hasRole(FREEZER_ROLE, s) && !hasRole(DEFAULT_ADMIN_ROLE, s))
+            revert NotAuthorizedCompliance();
         _;
     }
 
     modifier onlySeizerOrAdmin() {
         address s = _msgSender();
-        if (!hasRole(SEIZER_ROLE, s) && !hasRole(DEFAULT_ADMIN_ROLE, s)) revert NotAuthorizedCompliance();
+        if (!hasRole(SEIZER_ROLE, s) && !hasRole(DEFAULT_ADMIN_ROLE, s))
+            revert NotAuthorizedCompliance();
         _;
     }
 
@@ -158,7 +178,9 @@ contract StableNaira is
         grantRole(MINTER_ROLE, account);
     }
 
-    function removeMinter(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeMinter(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         revokeRole(MINTER_ROLE, account);
     }
 
@@ -167,7 +189,9 @@ contract StableNaira is
         grantRole(PAUSER_ROLE, account);
     }
 
-    function removePauser(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removePauser(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         revokeRole(PAUSER_ROLE, account);
     }
 
@@ -176,7 +200,9 @@ contract StableNaira is
         grantRole(FREEZER_ROLE, account);
     }
 
-    function removeFreezer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeFreezer(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         revokeRole(FREEZER_ROLE, account);
     }
 
@@ -185,11 +211,16 @@ contract StableNaira is
         grantRole(SEIZER_ROLE, account);
     }
 
-    function removeSeizer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeSeizer(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         revokeRole(SEIZER_ROLE, account);
     }
 
-    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) whenNotPaused returns (bool) {
+    function mint(
+        address to,
+        uint256 amount
+    ) external onlyRole(MINTER_ROLE) whenNotPaused returns (bool) {
         if (to == address(0)) revert ZeroAddress();
         uint256 cap = mintCap;
         if (cap != 0 && totalSupply() + amount > cap) revert MintCapExceeded();
@@ -199,7 +230,10 @@ contract StableNaira is
 
     /// @notice Queue a sensitive mint operation keyed by recipient and amount.
     /// @dev Caller must be admin; action can be committed after the configured timelock.
-    function queueMint(address to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 actionId) {
+    function queueMint(
+        address to,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 actionId) {
         if (to == address(0)) revert ZeroAddress();
         actionId = _queueAction(_hashMint(to, amount));
         emit MintQueued(actionId, to, amount);
@@ -217,7 +251,9 @@ contract StableNaira is
     }
 
     /// @notice Cancel a queued mint action before it is committed.
-    function cancelMint(uint256 actionId) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function cancelMint(
+        uint256 actionId
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _cancelAction(actionId);
     }
 
@@ -226,11 +262,17 @@ contract StableNaira is
     }
 
     /// @dev SECURITY: gated by MINTER_ROLE only (no allowance check). See HIGH-03 above.
-    function burnFrom(address account, uint256 amount) external onlyRole(MINTER_ROLE) whenNotPaused {
+    function burnFrom(
+        address account,
+        uint256 amount
+    ) external onlyRole(MINTER_ROLE) whenNotPaused {
         _burn(account, amount);
     }
 
-    function redeemRequest(uint256 amount, string calldata offChainReference) external whenNotPaused {
+    function redeemRequest(
+        uint256 amount,
+        string calldata offChainReference
+    ) external whenNotPaused {
         _burn(_msgSender(), amount);
         emit RedeemRequested(_msgSender(), amount, offChainReference);
     }
@@ -250,7 +292,11 @@ contract StableNaira is
     /// @dev SECURITY: intentionally bypasses pause and freeze via `_forceTransfer`.
     ///      See LOW-07 in contract docs. Compliance seizure must work on frozen
     ///      accounts and during pause.
-    function seizeFunds(address from, address to, uint256 amount) external onlySeizerOrAdmin {
+    function seizeFunds(
+        address from,
+        address to,
+        uint256 amount
+    ) external onlySeizerOrAdmin {
         if (from == address(0) || to == address(0)) revert ZeroAddress();
         if (balanceOf(from) < amount) revert InsufficientBalance();
         _forceTransfer(from, to, amount);
@@ -276,7 +322,11 @@ contract StableNaira is
         emit UpgradeQueued(actionId, newImpl);
     }
 
-    function commitUpgrade(uint256 actionId, address newImpl, bytes calldata data) external {
+    function commitUpgrade(
+        uint256 actionId,
+        address newImpl,
+        bytes calldata data
+    ) external {
         _consumeAction(actionId, _hashUpgrade(newImpl, data));
         _authorizedImpl = newImpl;
         upgradeToAndCall(newImpl, data);
@@ -292,23 +342,61 @@ contract StableNaira is
 
     function setMinTimelock(
         uint256 newMin
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 actionId) {
+        actionId = _queueAction(_hashSetMinTimelock(newMin));
+    }
+
+    function commitSetMinTimelock(uint256 actionId, uint256 newMin) external {
+        _consumeAction(actionId, _hashSetMinTimelock(newMin));
         _setMinTimelock(newMin);
+    }
+
+    function cancelSetMinTimelock(
+        uint256 actionId
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _cancelAction(actionId);
     }
 
     function setTimelock(
         uint256 newTl
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 actionId) {
+        actionId = _queueAction(_hashSetTimelock(newTl));
+    }
+
+    function commitSetTimelock(uint256 actionId, uint256 newTl) external {
+        _consumeAction(actionId, _hashSetTimelock(newTl));
         _setTimelock(newTl);
+    }
+
+    function cancelSetTimelock(
+        uint256 actionId
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _cancelAction(actionId);
     }
 
     /* ---------------------------- internals ---------------------------- */
 
-    function _hashMint(address to, uint256 amount) private pure returns (bytes32) {
+    function _hashMint(
+        address to,
+        uint256 amount
+    ) private pure returns (bytes32) {
         return keccak256(abi.encode(DOMAIN_MINT, to, amount));
     }
 
-    function _hashUpgrade(address newImpl, bytes calldata data) private pure returns (bytes32) {
+    function _hashSetMinTimelock(
+        uint256 newMin
+    ) private pure returns (bytes32) {
+        return keccak256(abi.encode("StableNaira.SetMinTimelock.v1", newMin));
+    }
+
+    function _hashSetTimelock(uint256 newTl) private pure returns (bytes32) {
+        return keccak256(abi.encode("StableNaira.SetTimelock.v1", newTl));
+    }
+
+    function _hashUpgrade(
+        address newImpl,
+        bytes calldata data
+    ) private pure returns (bytes32) {
         return keccak256(abi.encode(DOMAIN_UPGRADE, newImpl, keccak256(data)));
     }
 
@@ -317,7 +405,9 @@ contract StableNaira is
     }
 
     /// @dev Authorized only when invoked indirectly via `commitUpgrade`.
-    function _authorizeUpgrade(address newImplementation) internal view override {
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal view override {
         if (newImplementation != _authorizedImpl) revert UpgradeNotAuthorized();
     }
 
@@ -325,7 +415,11 @@ contract StableNaira is
         super._update(from, to, amount);
     }
 
-    function _update(address from, address to, uint256 value) internal override whenNotPaused {
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override whenNotPaused {
         if (from != address(0)) {
             if (frozen[from]) revert ERC20InvalidSender(from);
         }

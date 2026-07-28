@@ -9,8 +9,19 @@ const ZERO = "0x0000000000000000000000000000000000000000";
 describe("StableNaira", () => {
   async function fixture() {
     const [admin, alice, bob, charlie, mallory] = await ethers.getSigners();
-    const { stableNaira, factory, implementation, proxy } = await deployStableNaira(admin.address);
-    return { stableNaira, factory, implementation, proxy, admin, alice, bob, charlie, mallory };
+    const { stableNaira, factory, implementation, proxy } =
+      await deployStableNaira(admin.address);
+    return {
+      stableNaira,
+      factory,
+      implementation,
+      proxy,
+      admin,
+      alice,
+      bob,
+      charlie,
+      mallory,
+    };
   }
 
   describe("initialization", () => {
@@ -25,7 +36,9 @@ describe("StableNaira", () => {
     it("grants admin all default roles and sets owner()", async () => {
       const { stableNaira, admin } = await loadFixture(fixture);
       const DEFAULT_ADMIN_ROLE = await stableNaira.DEFAULT_ADMIN_ROLE();
-      expect(await stableNaira.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.equal(true);
+      expect(
+        await stableNaira.hasRole(DEFAULT_ADMIN_ROLE, admin.address),
+      ).to.equal(true);
       expect(await stableNaira.minters(admin.address)).to.equal(true);
       expect(await stableNaira.pausers(admin.address)).to.equal(true);
       expect(await stableNaira.freezers(admin.address)).to.equal(true);
@@ -43,7 +56,7 @@ describe("StableNaira", () => {
     it("re-initialize on the proxy reverts (locked)", async () => {
       const { stableNaira, admin } = await loadFixture(fixture);
       await expect(
-        stableNaira.initialize("X", "X", admin.address)
+        stableNaira.initialize("X", "X", admin.address),
       ).to.be.revertedWithCustomError(stableNaira, "InvalidInitialization");
     });
   });
@@ -60,16 +73,18 @@ describe("StableNaira", () => {
     it("non-admin cannot add minter", async () => {
       const { stableNaira, alice, bob } = await loadFixture(fixture);
       await expect(
-        stableNaira.connect(alice).addMinter(bob.address)
-      ).to.be.revertedWithCustomError(stableNaira, "AccessControlUnauthorizedAccount");
+        stableNaira.connect(alice).addMinter(bob.address),
+      ).to.be.revertedWithCustomError(
+        stableNaira,
+        "AccessControlUnauthorizedAccount",
+      );
     });
 
     it("addMinter rejects zero address", async () => {
       const { stableNaira, admin } = await loadFixture(fixture);
-      await expect(stableNaira.connect(admin).addMinter(ZERO)).to.be.revertedWithCustomError(
-        stableNaira,
-        "ZeroAddress"
-      );
+      await expect(
+        stableNaira.connect(admin).addMinter(ZERO),
+      ).to.be.revertedWithCustomError(stableNaira, "ZeroAddress");
     });
 
     it("admin can manage pauser/freezer/seizer roles symmetrically", async () => {
@@ -88,6 +103,61 @@ describe("StableNaira", () => {
     });
   });
 
+  describe("timelock administration", () => {
+    it("queues a timelock change and commits it after the delay", async () => {
+      const { stableNaira, admin } = await loadFixture(fixture);
+
+      const tx = await stableNaira.connect(admin).setTimelock(86400);
+      const receipt = await tx.wait();
+      const evt = receipt!.logs.find(
+        (l: any) => l.fragment?.name === "ActionQueued",
+      ) as any;
+      const actionId = evt.args.actionId as bigint;
+
+      expect(await stableNaira.timelock()).to.equal(3600n);
+
+      await expect(
+        stableNaira.connect(admin).commitSetTimelock(actionId, 86400n),
+      ).to.be.revertedWithCustomError(stableNaira, "ActionNotReady");
+
+      await time.increase(3600 + 1);
+
+      await expect(
+        stableNaira.connect(admin).commitSetTimelock(actionId, 86400n),
+      )
+        .to.emit(stableNaira, "TimelockUpdated")
+        .withArgs(3600n, 86400n);
+      expect(await stableNaira.timelock()).to.equal(86400n);
+    });
+
+    it("queues a min timelock change and commits it after the delay", async () => {
+      const { stableNaira, admin } = await loadFixture(fixture);
+
+      const tx = await stableNaira.connect(admin).setMinTimelock(7200);
+      const receipt = await tx.wait();
+      const evt = receipt!.logs.find(
+        (l: any) => l.fragment?.name === "ActionQueued",
+      ) as any;
+      const actionId = evt.args.actionId as bigint;
+
+      expect(await stableNaira.minTimelock()).to.equal(3600n);
+
+      await expect(
+        stableNaira.connect(admin).commitSetMinTimelock(actionId, 7200n),
+      ).to.be.revertedWithCustomError(stableNaira, "ActionNotReady");
+
+      await time.increase(3600 + 1);
+
+      await expect(
+        stableNaira.connect(admin).commitSetMinTimelock(actionId, 7200n),
+      )
+        .to.emit(stableNaira, "MinTimelockUpdated")
+        .withArgs(3600n, 7200n);
+      expect(await stableNaira.minTimelock()).to.equal(7200n);
+      expect(await stableNaira.timelock()).to.equal(7200n);
+    });
+  });
+
   describe("mint", () => {
     it("minter can mint to non-zero address", async () => {
       const { stableNaira, admin, alice } = await loadFixture(fixture);
@@ -100,68 +170,82 @@ describe("StableNaira", () => {
     it("mint to zero address reverts", async () => {
       const { stableNaira, admin } = await loadFixture(fixture);
       await expect(
-        stableNaira.connect(admin).mint(ZERO, 1n)
+        stableNaira.connect(admin).mint(ZERO, 1n),
       ).to.be.revertedWithCustomError(stableNaira, "ZeroAddress");
     });
 
     it("non-minter cannot mint", async () => {
       const { stableNaira, alice } = await loadFixture(fixture);
       await expect(
-        stableNaira.connect(alice).mint(alice.address, 1n)
-      ).to.be.revertedWithCustomError(stableNaira, "AccessControlUnauthorizedAccount");
+        stableNaira.connect(alice).mint(alice.address, 1n),
+      ).to.be.revertedWithCustomError(
+        stableNaira,
+        "AccessControlUnauthorizedAccount",
+      );
     });
 
     it("mint while paused reverts", async () => {
       const { stableNaira, admin, alice } = await loadFixture(fixture);
       await stableNaira.connect(admin).pause();
       await expect(
-        stableNaira.connect(admin).mint(alice.address, 1n)
+        stableNaira.connect(admin).mint(alice.address, 1n),
       ).to.be.revertedWithCustomError(stableNaira, "EnforcedPause");
     });
 
     it("queue + commit mint after timelock succeeds", async () => {
       const { stableNaira, admin, alice } = await loadFixture(fixture);
-      const tx = await stableNaira.connect(admin).queueMint(alice.address, 500n);
+      const tx = await stableNaira
+        .connect(admin)
+        .queueMint(alice.address, 500n);
       const receipt = await tx.wait();
-      const evt = receipt!.logs.find((l: any) => l.fragment?.name === "MintQueued") as any;
+      const evt = receipt!.logs.find(
+        (l: any) => l.fragment?.name === "MintQueued",
+      ) as any;
       const actionId = evt.args.actionId as bigint;
 
       await expect(
-        stableNaira.commitMint(actionId, alice.address, 500n)
+        stableNaira.commitMint(actionId, alice.address, 500n),
       ).to.be.revertedWithCustomError(stableNaira, "ActionNotReady");
 
       await time.increase(3600 + 1);
 
       await expect(
-        stableNaira.connect(admin).commitMint(actionId, alice.address, 500n)
+        stableNaira.connect(admin).commitMint(actionId, alice.address, 500n),
       )
         .to.emit(stableNaira, "MintCommitted")
         .withArgs(actionId, alice.address, 500n);
       expect(await stableNaira.balanceOf(alice.address)).to.equal(500n);
 
       await expect(
-        stableNaira.connect(admin).commitMint(actionId, alice.address, 500n)
+        stableNaira.connect(admin).commitMint(actionId, alice.address, 500n),
       ).to.be.revertedWithCustomError(stableNaira, "ActionNotFound");
     });
 
     it("non-admin cannot queue mint", async () => {
       const { stableNaira, alice } = await loadFixture(fixture);
       await expect(
-        stableNaira.connect(alice).queueMint(alice.address, 1n)
-      ).to.be.revertedWithCustomError(stableNaira, "AccessControlUnauthorizedAccount");
+        stableNaira.connect(alice).queueMint(alice.address, 1n),
+      ).to.be.revertedWithCustomError(
+        stableNaira,
+        "AccessControlUnauthorizedAccount",
+      );
     });
 
     it("admin can cancel queued mint", async () => {
       const { stableNaira, admin, alice } = await loadFixture(fixture);
-      const tx = await stableNaira.connect(admin).queueMint(alice.address, 100n);
+      const tx = await stableNaira
+        .connect(admin)
+        .queueMint(alice.address, 100n);
       const receipt = await tx.wait();
-      const evt = receipt!.logs.find((l: any) => l.fragment?.name === "MintQueued") as any;
+      const evt = receipt!.logs.find(
+        (l: any) => l.fragment?.name === "MintQueued",
+      ) as any;
       const actionId = evt.args.actionId as bigint;
 
       await stableNaira.connect(admin).cancelMint(actionId);
       await time.increase(3600 + 1);
       await expect(
-        stableNaira.connect(admin).commitMint(actionId, alice.address, 100n)
+        stableNaira.connect(admin).commitMint(actionId, alice.address, 100n),
       ).to.be.revertedWithCustomError(stableNaira, "ActionNotFound");
     });
 
@@ -173,7 +257,7 @@ describe("StableNaira", () => {
       await stableNaira.connect(admin).setMintCap(10n ** 20n + 1n); // cap just above current supply
       await stableNaira.connect(admin).mint(alice.address, 1n); // exactly at cap, ok
       await expect(
-        stableNaira.connect(admin).mint(alice.address, 1n)
+        stableNaira.connect(admin).mint(alice.address, 1n),
       ).to.be.revertedWithCustomError(stableNaira, "MintCapExceeded");
     });
   });
@@ -195,8 +279,11 @@ describe("StableNaira", () => {
       await stableNaira.connect(admin).burnFrom(alice.address, 30n);
       expect(await stableNaira.balanceOf(alice.address)).to.equal(70n);
       await expect(
-        stableNaira.connect(bob).burnFrom(alice.address, 1n)
-      ).to.be.revertedWithCustomError(stableNaira, "AccessControlUnauthorizedAccount");
+        stableNaira.connect(bob).burnFrom(alice.address, 1n),
+      ).to.be.revertedWithCustomError(
+        stableNaira,
+        "AccessControlUnauthorizedAccount",
+      );
     });
 
     it("redeemRequest burns and emits offChainReference", async () => {
@@ -222,8 +309,11 @@ describe("StableNaira", () => {
       await stableNaira.connect(admin).addPauser(alice.address);
       await stableNaira.connect(alice).pause();
       await expect(
-        stableNaira.connect(alice).unpause()
-      ).to.be.revertedWithCustomError(stableNaira, "AccessControlUnauthorizedAccount");
+        stableNaira.connect(alice).unpause(),
+      ).to.be.revertedWithCustomError(
+        stableNaira,
+        "AccessControlUnauthorizedAccount",
+      );
       await stableNaira.connect(admin).unpause();
       expect(await stableNaira.paused()).to.equal(false);
     });
@@ -233,16 +323,15 @@ describe("StableNaira", () => {
       await stableNaira.connect(admin).mint(alice.address, 10n);
       await stableNaira.connect(admin).pause();
       await expect(
-        stableNaira.connect(alice).transfer(bob.address, 1n)
+        stableNaira.connect(alice).transfer(bob.address, 1n),
       ).to.be.revertedWithCustomError(stableNaira, "EnforcedPause");
     });
 
     it("non-pauser non-admin cannot pause", async () => {
       const { stableNaira, alice } = await loadFixture(fixture);
-      await expect(stableNaira.connect(alice).pause()).to.be.revertedWithCustomError(
-        stableNaira,
-        "NotAuthorizedCompliance"
-      );
+      await expect(
+        stableNaira.connect(alice).pause(),
+      ).to.be.revertedWithCustomError(stableNaira, "NotAuthorizedCompliance");
     });
   });
 
@@ -253,14 +342,14 @@ describe("StableNaira", () => {
       await stableNaira.connect(admin).freezeAddress(alice.address);
 
       await expect(
-        stableNaira.connect(alice).transfer(bob.address, 1n)
+        stableNaira.connect(alice).transfer(bob.address, 1n),
       ).to.be.revertedWithCustomError(stableNaira, "ERC20InvalidSender");
 
       // Receiver-side block.
       await stableNaira.connect(admin).unfreezeAddress(alice.address);
       await stableNaira.connect(admin).freezeAddress(bob.address);
       await expect(
-        stableNaira.connect(alice).transfer(bob.address, 1n)
+        stableNaira.connect(alice).transfer(bob.address, 1n),
       ).to.be.revertedWithCustomError(stableNaira, "ERC20InvalidReceiver");
     });
 
@@ -268,12 +357,12 @@ describe("StableNaira", () => {
       const { stableNaira, admin, alice } = await loadFixture(fixture);
       await stableNaira.connect(admin).freezeAddress(alice.address);
       await expect(
-        stableNaira.connect(admin).freezeAddress(alice.address)
+        stableNaira.connect(admin).freezeAddress(alice.address),
       ).to.be.revertedWithCustomError(stableNaira, "AlreadyFrozen");
 
       await stableNaira.connect(admin).unfreezeAddress(alice.address);
       await expect(
-        stableNaira.connect(admin).unfreezeAddress(alice.address)
+        stableNaira.connect(admin).unfreezeAddress(alice.address),
       ).to.be.revertedWithCustomError(stableNaira, "NotFrozen");
     });
   });
@@ -285,7 +374,9 @@ describe("StableNaira", () => {
       await stableNaira.connect(admin).freezeAddress(alice.address);
       await stableNaira.connect(admin).pause();
 
-      await expect(stableNaira.connect(admin).seizeFunds(alice.address, bob.address, 40n))
+      await expect(
+        stableNaira.connect(admin).seizeFunds(alice.address, bob.address, 40n),
+      )
         .to.emit(stableNaira, "FundsSeized")
         .withArgs(alice.address, bob.address, 40n);
 
@@ -297,14 +388,14 @@ describe("StableNaira", () => {
       const { stableNaira, admin, alice, bob } = await loadFixture(fixture);
       await stableNaira.connect(admin).mint(alice.address, 10n);
       await expect(
-        stableNaira.connect(admin).seizeFunds(alice.address, bob.address, 11n)
+        stableNaira.connect(admin).seizeFunds(alice.address, bob.address, 11n),
       ).to.be.revertedWithCustomError(stableNaira, "InsufficientBalance");
     });
 
     it("seize zero address reverts", async () => {
       const { stableNaira, admin, alice } = await loadFixture(fixture);
       await expect(
-        stableNaira.connect(admin).seizeFunds(ZERO, alice.address, 1n)
+        stableNaira.connect(admin).seizeFunds(ZERO, alice.address, 1n),
       ).to.be.revertedWithCustomError(stableNaira, "ZeroAddress");
     });
   });
@@ -341,8 +432,12 @@ describe("StableNaira", () => {
       const sig = await alice.signTypedData(domain, types, message);
       const { v, r, s } = ethers.Signature.from(sig);
 
-      await stableNaira.connect(bob).permit(alice.address, bob.address, value, deadline, v, r, s);
-      expect(await stableNaira.allowance(alice.address, bob.address)).to.equal(value);
+      await stableNaira
+        .connect(bob)
+        .permit(alice.address, bob.address, value, deadline, v, r, s);
+      expect(await stableNaira.allowance(alice.address, bob.address)).to.equal(
+        value,
+      );
       expect(await stableNaira.nonces(alice.address)).to.equal(nonce + 1n);
 
       // Hush unused-var warning on admin.
@@ -357,7 +452,9 @@ describe("StableNaira", () => {
       const newImpl = await Impl.deploy();
       await newImpl.waitForDeployment();
       await expect(
-        stableNaira.connect(admin).upgradeToAndCall(await newImpl.getAddress(), "0x")
+        stableNaira
+          .connect(admin)
+          .upgradeToAndCall(await newImpl.getAddress(), "0x"),
       ).to.be.revertedWithCustomError(stableNaira, "UpgradeNotAuthorized");
     });
 
@@ -373,19 +470,21 @@ describe("StableNaira", () => {
 
       const tx = await stableNaira.connect(admin).queueUpgrade(newAddr, "0x");
       const receipt = await tx.wait();
-      const evt = receipt!.logs.find((l: any) => l.fragment?.name === "UpgradeQueued") as any;
+      const evt = receipt!.logs.find(
+        (l: any) => l.fragment?.name === "UpgradeQueued",
+      ) as any;
       const actionId = evt.args.actionId as bigint;
 
       // Cannot commit before timelock.
       await expect(
-        stableNaira.commitUpgrade(actionId, newAddr, "0x")
+        stableNaira.commitUpgrade(actionId, newAddr, "0x"),
       ).to.be.revertedWithCustomError(stableNaira, "ActionNotReady");
 
       await time.increase(3600 + 1);
 
       // Wrong arg => mismatch.
       await expect(
-        stableNaira.commitUpgrade(actionId, alice.address, "0x")
+        stableNaira.commitUpgrade(actionId, alice.address, "0x"),
       ).to.be.revertedWithCustomError(stableNaira, "ActionMismatch");
 
       await stableNaira.commitUpgrade(actionId, newAddr, "0x");
@@ -395,7 +494,7 @@ describe("StableNaira", () => {
 
       // Commit twice rejected (action already consumed).
       await expect(
-        stableNaira.commitUpgrade(actionId, newAddr, "0x")
+        stableNaira.commitUpgrade(actionId, newAddr, "0x"),
       ).to.be.revertedWithCustomError(stableNaira, "ActionNotFound");
     });
 
@@ -404,8 +503,13 @@ describe("StableNaira", () => {
       const Impl = await ethers.getContractFactory("StableNaira");
       const newImpl = await Impl.deploy();
       await expect(
-        stableNaira.connect(alice).queueUpgrade(await newImpl.getAddress(), "0x")
-      ).to.be.revertedWithCustomError(stableNaira, "AccessControlUnauthorizedAccount");
+        stableNaira
+          .connect(alice)
+          .queueUpgrade(await newImpl.getAddress(), "0x"),
+      ).to.be.revertedWithCustomError(
+        stableNaira,
+        "AccessControlUnauthorizedAccount",
+      );
     });
 
     it("admin can cancel queued upgrade", async () => {
@@ -415,13 +519,15 @@ describe("StableNaira", () => {
       const newAddr = await newImpl.getAddress();
       const tx = await stableNaira.connect(admin).queueUpgrade(newAddr, "0x");
       const receipt = await tx.wait();
-      const evt = receipt!.logs.find((l: any) => l.fragment?.name === "UpgradeQueued") as any;
+      const evt = receipt!.logs.find(
+        (l: any) => l.fragment?.name === "UpgradeQueued",
+      ) as any;
       const actionId = evt.args.actionId as bigint;
 
       await stableNaira.connect(admin).cancelUpgrade(actionId);
       await time.increase(3600 + 1);
       await expect(
-        stableNaira.commitUpgrade(actionId, newAddr, "0x")
+        stableNaira.commitUpgrade(actionId, newAddr, "0x"),
       ).to.be.revertedWithCustomError(stableNaira, "ActionNotFound");
     });
   });

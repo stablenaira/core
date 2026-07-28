@@ -58,8 +58,12 @@ export interface StableNairaInterface extends Interface {
       | "burn"
       | "burnFrom"
       | "cancelMint"
+      | "cancelSetMinTimelock"
+      | "cancelSetTimelock"
       | "cancelUpgrade"
       | "commitMint"
+      | "commitSetMinTimelock"
+      | "commitSetTimelock"
       | "commitUpgrade"
       | "decimals"
       | "eip712Domain"
@@ -213,12 +217,28 @@ export interface StableNairaInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "cancelSetMinTimelock",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "cancelSetTimelock",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "cancelUpgrade",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "commitMint",
     values: [BigNumberish, AddressLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "commitSetMinTimelock",
+    values: [BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "commitSetTimelock",
+    values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "commitUpgrade",
@@ -436,10 +456,26 @@ export interface StableNairaInterface extends Interface {
   decodeFunctionResult(functionFragment: "burnFrom", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "cancelMint", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "cancelSetMinTimelock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "cancelSetTimelock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "cancelUpgrade",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "commitMint", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "commitSetMinTimelock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "commitSetTimelock",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "commitUpgrade",
     data: BytesLike
@@ -1019,6 +1055,18 @@ export interface StableNaira extends BaseContract {
     "nonpayable"
   >;
 
+  cancelSetMinTimelock: TypedContractMethod<
+    [actionId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  cancelSetTimelock: TypedContractMethod<
+    [actionId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   cancelUpgrade: TypedContractMethod<
     [actionId: BigNumberish],
     [void],
@@ -1027,6 +1075,18 @@ export interface StableNaira extends BaseContract {
 
   commitMint: TypedContractMethod<
     [actionId: BigNumberish, to: AddressLike, amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  commitSetMinTimelock: TypedContractMethod<
+    [actionId: BigNumberish, newMin: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  commitSetTimelock: TypedContractMethod<
+    [actionId: BigNumberish, newTl: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -1203,13 +1263,17 @@ export interface StableNaira extends BaseContract {
 
   setMinTimelock: TypedContractMethod<
     [newMin: BigNumberish],
-    [void],
+    [bigint],
     "nonpayable"
   >;
 
   setMintCap: TypedContractMethod<[newCap: BigNumberish], [void], "nonpayable">;
 
-  setTimelock: TypedContractMethod<[newTl: BigNumberish], [void], "nonpayable">;
+  setTimelock: TypedContractMethod<
+    [newTl: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
 
   supportsInterface: TypedContractMethod<
     [interfaceId: BytesLike],
@@ -1326,12 +1390,32 @@ export interface StableNaira extends BaseContract {
     nameOrSignature: "cancelMint"
   ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "cancelSetMinTimelock"
+  ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "cancelSetTimelock"
+  ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "cancelUpgrade"
   ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "commitMint"
   ): TypedContractMethod<
     [actionId: BigNumberish, to: AddressLike, amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "commitSetMinTimelock"
+  ): TypedContractMethod<
+    [actionId: BigNumberish, newMin: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "commitSetTimelock"
+  ): TypedContractMethod<
+    [actionId: BigNumberish, newTl: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -1523,13 +1607,13 @@ export interface StableNaira extends BaseContract {
   ): TypedContractMethod<[account: AddressLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "setMinTimelock"
-  ): TypedContractMethod<[newMin: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[newMin: BigNumberish], [bigint], "nonpayable">;
   getFunction(
     nameOrSignature: "setMintCap"
   ): TypedContractMethod<[newCap: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "setTimelock"
-  ): TypedContractMethod<[newTl: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[newTl: BigNumberish], [bigint], "nonpayable">;
   getFunction(
     nameOrSignature: "supportsInterface"
   ): TypedContractMethod<[interfaceId: BytesLike], [boolean], "view">;
