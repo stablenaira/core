@@ -6,10 +6,10 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @title TimelockedUpgradeable
 /// @notice Reusable mixin: a queue → commit pattern for sensitive admin
 ///         operations, gated by a configurable delay with an immutable
-///         `MIN_FLOOR_TIMELOCK = 1 hour` lower bound.
+///         `MIN_FLOOR_TIMELOCK = 1 minute` lower bound.
 ///
 ///         The floor is a hardcoded constant — even a compromised owner
-///         cannot drop the timelock below 1 hour. This is the security
+///         cannot drop the timelock below 1 minute. This is the security
 ///         boundary. `setMinTimelock` and `setTimelock` are direct (no
 ///         queue/commit) per design, but bounded by the floor and by
 ///         `MAX_TIMELOCK = 365 days` to prevent uint64 truncation in `eta`.
@@ -28,7 +28,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 ///              authorization (typically `onlyOwner`).
 abstract contract TimelockedUpgradeable is Initializable {
     /// @notice Hardcoded floor — `minTimelock` cannot be set below this.
-    uint256 public constant MIN_FLOOR_TIMELOCK = 1 hours;
+    uint256 public constant MIN_FLOOR_TIMELOCK = 1 minutes;
 
     /// @notice Hardcoded ceiling — prevents `block.timestamp + timelock`
     ///         from overflowing the `uint64 eta` field, and bounds operator

@@ -113,7 +113,7 @@ contract StableNaira is
         __Pausable_init();
         __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
-        // Default 1-hour timelock applied to upgrades; admin can raise via setTimelock.
+        // Default 1-minute timelock applied to upgrades; admin can raise via setTimelock.
         __Timelocked_init(0, 0);
 
         if (initialAdmin == address(0)) revert ZeroAddress();
@@ -217,23 +217,23 @@ contract StableNaira is
         revokeRole(SEIZER_ROLE, account);
     }
 
-    function mint(
-        address to,
-        uint256 amount
-    ) external onlyRole(MINTER_ROLE) whenNotPaused returns (bool) {
-        if (to == address(0)) revert ZeroAddress();
-        uint256 cap = mintCap;
-        if (cap != 0 && totalSupply() + amount > cap) revert MintCapExceeded();
-        _mint(to, amount);
-        return true;
-    }
+    // function mint(
+    //     address to,
+    //     uint256 amount
+    // ) external onlyRole(MINTER_ROLE) whenNotPaused returns (bool) {
+    //     if (to == address(0)) revert ZeroAddress();
+    //     uint256 cap = mintCap;
+    //     if (cap != 0 && totalSupply() + amount > cap) revert MintCapExceeded();
+    //     _mint(to, amount);
+    //     return true;
+    // }
 
     /// @notice Queue a sensitive mint operation keyed by recipient and amount.
     /// @dev Caller must be admin; action can be committed after the configured timelock.
-    function queueMint(
+    function mint(
         address to,
         uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 actionId) {
+    ) external onlyRole(MINTER_ROLE) returns (uint256 actionId) {
         if (to == address(0)) revert ZeroAddress();
         actionId = _queueAction(_hashMint(to, amount));
         emit MintQueued(actionId, to, amount);
@@ -241,7 +241,7 @@ contract StableNaira is
 
     /// @notice Commit a previously queued mint after the timelock has elapsed.
     /// @dev The supplied args must match the queued action hash exactly.
-    function commitMint(uint256 actionId, address to, uint256 amount) external {
+    function commitMint(uint256 actionId, address to, uint256 amount) onlyRole(DEFAULT_ADMIN_ROLE) external {
         _consumeAction(actionId, _hashMint(to, amount));
         if (to == address(0)) revert ZeroAddress();
         uint256 cap = mintCap;

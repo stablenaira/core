@@ -114,19 +114,19 @@ describe("StableNaira", () => {
       ) as any;
       const actionId = evt.args.actionId as bigint;
 
-      expect(await stableNaira.timelock()).to.equal(3600n);
+      expect(await stableNaira.timelock()).to.equal(60n);
 
       await expect(
         stableNaira.connect(admin).commitSetTimelock(actionId, 86400n),
       ).to.be.revertedWithCustomError(stableNaira, "ActionNotReady");
 
-      await time.increase(3600 + 1);
+      await time.increase(60 + 1);
 
       await expect(
         stableNaira.connect(admin).commitSetTimelock(actionId, 86400n),
       )
         .to.emit(stableNaira, "TimelockUpdated")
-        .withArgs(3600n, 86400n);
+        .withArgs(60n, 86400n);
       expect(await stableNaira.timelock()).to.equal(86400n);
     });
 
@@ -140,19 +140,19 @@ describe("StableNaira", () => {
       ) as any;
       const actionId = evt.args.actionId as bigint;
 
-      expect(await stableNaira.minTimelock()).to.equal(3600n);
+      expect(await stableNaira.minTimelock()).to.equal(60n);
 
       await expect(
         stableNaira.connect(admin).commitSetMinTimelock(actionId, 7200n),
       ).to.be.revertedWithCustomError(stableNaira, "ActionNotReady");
 
-      await time.increase(3600 + 1);
+      await time.increase(60 + 1);
 
       await expect(
         stableNaira.connect(admin).commitSetMinTimelock(actionId, 7200n),
       )
         .to.emit(stableNaira, "MinTimelockUpdated")
-        .withArgs(3600n, 7200n);
+        .withArgs(60n, 7200n);
       expect(await stableNaira.minTimelock()).to.equal(7200n);
       expect(await stableNaira.timelock()).to.equal(7200n);
     });
