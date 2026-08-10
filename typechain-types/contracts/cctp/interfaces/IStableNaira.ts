@@ -24,30 +24,29 @@ import type {
 export interface IStableNairaInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "MINTER_ROLE"
-      | "addMinter"
+      | "BRIDGE_ROLE"
       | "allowance"
       | "approve"
       | "balanceOf"
+      | "bridgeBurnAvailable"
+      | "bridgeMintAvailable"
+      | "bridges"
       | "burnFrom"
+      | "commitAddBridge"
       | "decimals"
       | "frozen"
       | "mint"
       | "mintCap"
-      | "minters"
       | "paused"
-      | "removeMinter"
+      | "queueAddBridge"
+      | "removeBridge"
       | "totalSupply"
       | "transfer"
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "MINTER_ROLE",
+    functionFragment: "BRIDGE_ROLE",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "addMinter",
-    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "allowance",
@@ -62,8 +61,24 @@ export interface IStableNairaInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "bridgeBurnAvailable",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "bridgeMintAvailable",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "bridges",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "burnFrom",
     values: [AddressLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "commitAddBridge",
+    values: [BigNumberish, AddressLike, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "decimals", values?: undefined): string;
   encodeFunctionData(functionFragment: "frozen", values: [AddressLike]): string;
@@ -72,13 +87,13 @@ export interface IStableNairaInterface extends Interface {
     values: [AddressLike, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "mintCap", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "minters",
-    values: [AddressLike]
-  ): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "removeMinter",
+    functionFragment: "queueAddBridge",
+    values: [AddressLike, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "removeBridge",
     values: [AddressLike]
   ): string;
   encodeFunctionData(
@@ -91,22 +106,37 @@ export interface IStableNairaInterface extends Interface {
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "MINTER_ROLE",
+    functionFragment: "BRIDGE_ROLE",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "addMinter", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "bridgeBurnAvailable",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "bridgeMintAvailable",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "bridges", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burnFrom", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "commitAddBridge",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "decimals", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "frozen", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "mint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "mintCap", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "minters", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "removeMinter",
+    functionFragment: "queueAddBridge",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "removeBridge",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -159,9 +189,7 @@ export interface IStableNaira extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  MINTER_ROLE: TypedContractMethod<[], [string], "view">;
-
-  addMinter: TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
+  BRIDGE_ROLE: TypedContractMethod<[], [string], "view">;
 
   allowance: TypedContractMethod<
     [owner: AddressLike, spender: AddressLike],
@@ -177,8 +205,33 @@ export interface IStableNaira extends BaseContract {
 
   balanceOf: TypedContractMethod<[account: AddressLike], [bigint], "view">;
 
+  bridgeBurnAvailable: TypedContractMethod<
+    [bridge: AddressLike],
+    [bigint],
+    "view"
+  >;
+
+  bridgeMintAvailable: TypedContractMethod<
+    [bridge: AddressLike],
+    [bigint],
+    "view"
+  >;
+
+  bridges: TypedContractMethod<[account: AddressLike], [boolean], "view">;
+
   burnFrom: TypedContractMethod<
     [account: AddressLike, amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  commitAddBridge: TypedContractMethod<
+    [
+      actionId: BigNumberish,
+      bridge: AddressLike,
+      capacity: BigNumberish,
+      period: BigNumberish
+    ],
     [void],
     "nonpayable"
   >;
@@ -195,12 +248,16 @@ export interface IStableNaira extends BaseContract {
 
   mintCap: TypedContractMethod<[], [bigint], "view">;
 
-  minters: TypedContractMethod<[account: AddressLike], [boolean], "view">;
-
   paused: TypedContractMethod<[], [boolean], "view">;
 
-  removeMinter: TypedContractMethod<
-    [account: AddressLike],
+  queueAddBridge: TypedContractMethod<
+    [bridge: AddressLike, capacity: BigNumberish, period: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
+
+  removeBridge: TypedContractMethod<
+    [bridge: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -218,11 +275,8 @@ export interface IStableNaira extends BaseContract {
   ): T;
 
   getFunction(
-    nameOrSignature: "MINTER_ROLE"
+    nameOrSignature: "BRIDGE_ROLE"
   ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "addMinter"
-  ): TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "allowance"
   ): TypedContractMethod<
@@ -241,9 +295,30 @@ export interface IStableNaira extends BaseContract {
     nameOrSignature: "balanceOf"
   ): TypedContractMethod<[account: AddressLike], [bigint], "view">;
   getFunction(
+    nameOrSignature: "bridgeBurnAvailable"
+  ): TypedContractMethod<[bridge: AddressLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "bridgeMintAvailable"
+  ): TypedContractMethod<[bridge: AddressLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "bridges"
+  ): TypedContractMethod<[account: AddressLike], [boolean], "view">;
+  getFunction(
     nameOrSignature: "burnFrom"
   ): TypedContractMethod<
     [account: AddressLike, amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "commitAddBridge"
+  ): TypedContractMethod<
+    [
+      actionId: BigNumberish,
+      bridge: AddressLike,
+      capacity: BigNumberish,
+      period: BigNumberish
+    ],
     [void],
     "nonpayable"
   >;
@@ -264,14 +339,18 @@ export interface IStableNaira extends BaseContract {
     nameOrSignature: "mintCap"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
-    nameOrSignature: "minters"
-  ): TypedContractMethod<[account: AddressLike], [boolean], "view">;
-  getFunction(
     nameOrSignature: "paused"
   ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
-    nameOrSignature: "removeMinter"
-  ): TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
+    nameOrSignature: "queueAddBridge"
+  ): TypedContractMethod<
+    [bridge: AddressLike, capacity: BigNumberish, period: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "removeBridge"
+  ): TypedContractMethod<[bridge: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "totalSupply"
   ): TypedContractMethod<[], [bigint], "view">;

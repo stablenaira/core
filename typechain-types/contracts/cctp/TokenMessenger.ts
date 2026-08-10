@@ -38,6 +38,7 @@ export declare namespace TimelockedUpgradeable {
 export interface TokenMessengerInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "ACTION_GRACE_PERIOD"
       | "MAX_FEE_BPS"
       | "MAX_TIMELOCK"
       | "MIN_FLOOR_TIMELOCK"
@@ -107,6 +108,10 @@ export interface TokenMessengerInterface extends Interface {
       | "Upgraded"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "ACTION_GRACE_PERIOD",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "MAX_FEE_BPS",
     values?: undefined
@@ -250,6 +255,10 @@ export interface TokenMessengerInterface extends Interface {
     values: [AddressLike, BytesLike]
   ): string;
 
+  decodeFunctionResult(
+    functionFragment: "ACTION_GRACE_PERIOD",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "MAX_FEE_BPS",
     data: BytesLike
@@ -795,6 +804,8 @@ export interface TokenMessenger extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  ACTION_GRACE_PERIOD: TypedContractMethod<[], [bigint], "view">;
+
   MAX_FEE_BPS: TypedContractMethod<[], [bigint], "view">;
 
   MAX_TIMELOCK: TypedContractMethod<[], [bigint], "view">;
@@ -972,6 +983,9 @@ export interface TokenMessenger extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "ACTION_GRACE_PERIOD"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "MAX_FEE_BPS"
   ): TypedContractMethod<[], [bigint], "view">;

@@ -6,18 +6,25 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @title TimelockedUpgradeable
 /// @notice Reusable mixin: a queue → commit pattern for sensitive admin
 ///         operations, gated by a configurable delay with an immutable
-///         `MIN_FLOOR_TIMELOCK = 1 minute` lower bound.
+///         `MIN_FLOOR_TIMELOCK = 1 hour` lower bound.
 ///
 ///         The floor is a hardcoded constant — even a compromised owner
-///         cannot drop the timelock below 1 minute. This is the security
+///         cannot drop the timelock below 1 hour. This is the security
 ///         boundary. `setMinTimelock` and `setTimelock` are direct (no
 ///         queue/commit) per design, but bounded by the floor and by
 ///         `MAX_TIMELOCK = 365 days` to prevent uint64 truncation in `eta`.
 ///
+///         Queued actions expire `ACTION_GRACE_PERIOD` after their `eta`.
+///         Without an expiry a malicious action queued during a brief key
+///         compromise stays executable forever — surviving key rotation and
+///         admin replacement — and the only remedy would be remembering to
+///         cancel it. After the grace window an action is dead and must be
+///         re-queued, which restarts the full review delay.
+///
 ///         Inheritors:
 ///           1. Call `__Timelocked_init(initialTimelock, initialMinTimelock)`
 ///              from their own `initialize`. Pass `0` for either arg to use
-///              the 1-hour default.
+///              the `MIN_FLOOR_TIMELOCK` default.
 ///           2. Wrap `_queueAction(hash)` in their own `queueX` functions
 ///              keyed on a content-addressed action hash. Store any extra
 ///              typed details in their own mappings if needed for events.
@@ -28,12 +35,20 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 ///              authorization (typically `onlyOwner`).
 abstract contract TimelockedUpgradeable is Initializable {
     /// @notice Hardcoded floor — `minTimelock` cannot be set below this.
-    uint256 public constant MIN_FLOOR_TIMELOCK = 1 minutes;
+    ///         One hour is the shortest delay that still allows a multisig
+    ///         quorum or an automated monitor to observe a queued action and
+    ///         cancel it before it becomes executable.
+    uint256 public constant MIN_FLOOR_TIMELOCK = 1 hours;
 
     /// @notice Hardcoded ceiling — prevents `block.timestamp + timelock`
     ///         from overflowing the `uint64 eta` field, and bounds operator
     ///         mistakes (e.g. setting a 100-year delay).
     uint256 public constant MAX_TIMELOCK = 365 days;
+
+    /// @notice Window after `eta` during which an action may be committed.
+    ///         Past `eta + ACTION_GRACE_PERIOD` the action is permanently
+    ///         dead and must be re-queued.
+    uint256 public constant ACTION_GRACE_PERIOD = 30 days;
 
     struct PendingAction {
         bytes32 actionHash;
@@ -76,6 +91,8 @@ abstract contract TimelockedUpgradeable is Initializable {
     error ActionNotFound(uint256 actionId);
     /// @notice `commit` was called before `eta`.
     error ActionNotReady(uint256 actionId, uint64 eta, uint64 nowTs);
+    /// @notice `commit` was called after `eta + ACTION_GRACE_PERIOD`.
+    error ActionExpired(uint256 actionId, uint64 deadline, uint64 nowTs);
     /// @notice Hash supplied at `commit` does not match the hash queued.
     ///         Caller passed wrong arguments to the commit-side function.
     error ActionMismatch(uint256 actionId, bytes32 expected, bytes32 actual);
@@ -120,6 +137,12 @@ abstract contract TimelockedUpgradeable is Initializable {
         if (block.timestamp < a.eta) {
             revert ActionNotReady(actionId, a.eta, uint64(block.timestamp));
         }
+        // Safe: `eta <= block.timestamp + MAX_TIMELOCK` and the grace period is
+        // a small constant, so the sum cannot overflow uint64 before year 2554.
+        uint64 deadline = a.eta + uint64(ACTION_GRACE_PERIOD);
+        if (block.timestamp > deadline) {
+            revert ActionExpired(actionId, deadline, uint64(block.timestamp));
+        }
         if (a.actionHash != expectedHash) {
             revert ActionMismatch(actionId, a.actionHash, expectedHash);
         }
@@ -131,10 +154,10 @@ abstract contract TimelockedUpgradeable is Initializable {
     function _cancelAction(
         uint256 actionId
     ) internal {
-        bytes32 h = _actions[actionId].actionHash;
-        if (_actions[actionId].eta == 0) revert ActionNotFound(actionId);
+        PendingAction memory a = _actions[actionId];
+        if (a.eta == 0) revert ActionNotFound(actionId);
         delete _actions[actionId];
-        emit ActionCancelled(actionId, h);
+        emit ActionCancelled(actionId, a.actionHash);
     }
 
     /* --------------- internal: timelock setters (unguarded) ------------- */

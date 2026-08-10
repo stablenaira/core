@@ -17,6 +17,27 @@ const _abi = [
         type: "uint256",
       },
       {
+        internalType: "uint64",
+        name: "deadline",
+        type: "uint64",
+      },
+      {
+        internalType: "uint64",
+        name: "nowTs",
+        type: "uint64",
+      },
+    ],
+    name: "ActionExpired",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "actionId",
+        type: "uint256",
+      },
+      {
         internalType: "bytes32",
         name: "expected",
         type: "bytes32",
@@ -233,6 +254,19 @@ const _abi = [
     ],
     name: "TimelockUpdated",
     type: "event",
+  },
+  {
+    inputs: [],
+    name: "ACTION_GRACE_PERIOD",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
   },
   {
     inputs: [],

@@ -23,6 +23,33 @@ import type {
   TypedContractMethod,
 } from "../common";
 
+export declare namespace StableNaira {
+  export type BridgeLimitStruct = {
+    capacity: BigNumberish;
+    period: BigNumberish;
+    lastMintRefill: BigNumberish;
+    lastBurnRefill: BigNumberish;
+    mintRemaining: BigNumberish;
+    burnRemaining: BigNumberish;
+  };
+
+  export type BridgeLimitStructOutput = [
+    capacity: bigint,
+    period: bigint,
+    lastMintRefill: bigint,
+    lastBurnRefill: bigint,
+    mintRemaining: bigint,
+    burnRemaining: bigint
+  ] & {
+    capacity: bigint;
+    period: bigint;
+    lastMintRefill: bigint;
+    lastBurnRefill: bigint;
+    mintRemaining: bigint;
+    burnRemaining: bigint;
+  };
+}
+
 export declare namespace TimelockedUpgradeable {
   export type PendingActionStruct = {
     actionHash: BytesLike;
@@ -38,6 +65,8 @@ export declare namespace TimelockedUpgradeable {
 export interface StableNairaInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "ACTION_GRACE_PERIOD"
+      | "BRIDGE_ROLE"
       | "DEFAULT_ADMIN_ROLE"
       | "DOMAIN_SEPARATOR"
       | "FREEZER_ROLE"
@@ -55,14 +84,17 @@ export interface StableNairaInterface extends Interface {
       | "allowance"
       | "approve"
       | "balanceOf"
+      | "bridgeBurnAvailable"
+      | "bridgeLimit"
+      | "bridgeMintAvailable"
+      | "bridges"
       | "burn"
       | "burnFrom"
-      | "cancelMint"
-      | "cancelSetMinTimelock"
-      | "cancelSetTimelock"
-      | "cancelUpgrade"
+      | "cancelAction"
+      | "commitAddBridge"
       | "commitMint"
       | "commitSetMinTimelock"
+      | "commitSetMintCap"
       | "commitSetTimelock"
       | "commitUpgrade"
       | "decimals"
@@ -89,8 +121,12 @@ export interface StableNairaInterface extends Interface {
       | "pendingAction"
       | "permit"
       | "proxiableUUID"
+      | "queueAddBridge"
+      | "queueMint"
+      | "queueSetMintCap"
       | "queueUpgrade"
       | "redeemRequest"
+      | "removeBridge"
       | "removeFreezer"
       | "removeMinter"
       | "removePauser"
@@ -100,7 +136,6 @@ export interface StableNairaInterface extends Interface {
       | "seizeFunds"
       | "seizers"
       | "setMinTimelock"
-      | "setMintCap"
       | "setTimelock"
       | "supportsInterface"
       | "symbol"
@@ -121,10 +156,16 @@ export interface StableNairaInterface extends Interface {
       | "ActionCommitted"
       | "ActionQueued"
       | "Approval"
+      | "BridgeBurned"
+      | "BridgeChangeQueued"
+      | "BridgeMinted"
+      | "BridgeRemoved"
+      | "BridgeUpdated"
       | "EIP712DomainChanged"
       | "FundsSeized"
       | "Initialized"
       | "MinTimelockUpdated"
+      | "MintCapChangeQueued"
       | "MintCapUpdated"
       | "MintCommitted"
       | "MintQueued"
@@ -141,6 +182,14 @@ export interface StableNairaInterface extends Interface {
       | "Upgraded"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "ACTION_GRACE_PERIOD",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "BRIDGE_ROLE",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "DEFAULT_ADMIN_ROLE",
     values?: undefined
@@ -206,26 +255,34 @@ export interface StableNairaInterface extends Interface {
     functionFragment: "balanceOf",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "bridgeBurnAvailable",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "bridgeLimit",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "bridgeMintAvailable",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "bridges",
+    values: [AddressLike]
+  ): string;
   encodeFunctionData(functionFragment: "burn", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "burnFrom",
     values: [AddressLike, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "cancelMint",
+    functionFragment: "cancelAction",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "cancelSetMinTimelock",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "cancelSetTimelock",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "cancelUpgrade",
-    values: [BigNumberish]
+    functionFragment: "commitAddBridge",
+    values: [BigNumberish, AddressLike, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "commitMint",
@@ -233,6 +290,10 @@ export interface StableNairaInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "commitSetMinTimelock",
+    values: [BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "commitSetMintCap",
     values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
@@ -324,12 +385,28 @@ export interface StableNairaInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "queueAddBridge",
+    values: [AddressLike, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "queueMint",
+    values: [AddressLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "queueSetMintCap",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "queueUpgrade",
     values: [AddressLike, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "redeemRequest",
     values: [BigNumberish, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "removeBridge",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "removeFreezer",
@@ -368,10 +445,6 @@ export interface StableNairaInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "setMintCap",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setTimelock",
     values: [BigNumberish]
   ): string;
@@ -403,6 +476,14 @@ export interface StableNairaInterface extends Interface {
     values: [AddressLike, BytesLike]
   ): string;
 
+  decodeFunctionResult(
+    functionFragment: "ACTION_GRACE_PERIOD",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "BRIDGE_ROLE",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "DEFAULT_ADMIN_ROLE",
     data: BytesLike
@@ -447,24 +528,36 @@ export interface StableNairaInterface extends Interface {
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "bridgeBurnAvailable",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "bridgeLimit",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "bridgeMintAvailable",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "bridges", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burn", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burnFrom", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "cancelMint", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "cancelSetMinTimelock",
+    functionFragment: "cancelAction",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "cancelSetTimelock",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "cancelUpgrade",
+    functionFragment: "commitAddBridge",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "commitMint", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "commitSetMinTimelock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "commitSetMintCap",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -524,11 +617,24 @@ export interface StableNairaInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "queueAddBridge",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "queueMint", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "queueSetMintCap",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "queueUpgrade",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "redeemRequest",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "removeBridge",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -558,7 +664,6 @@ export interface StableNairaInterface extends Interface {
     functionFragment: "setMinTimelock",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "setMintCap", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setTimelock",
     data: BytesLike
@@ -675,6 +780,97 @@ export namespace ApprovalEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace BridgeBurnedEvent {
+  export type InputTuple = [
+    bridge: AddressLike,
+    from: AddressLike,
+    amount: BigNumberish
+  ];
+  export type OutputTuple = [bridge: string, from: string, amount: bigint];
+  export interface OutputObject {
+    bridge: string;
+    from: string;
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace BridgeChangeQueuedEvent {
+  export type InputTuple = [
+    actionId: BigNumberish,
+    bridge: AddressLike,
+    capacity: BigNumberish,
+    period: BigNumberish
+  ];
+  export type OutputTuple = [
+    actionId: bigint,
+    bridge: string,
+    capacity: bigint,
+    period: bigint
+  ];
+  export interface OutputObject {
+    actionId: bigint;
+    bridge: string;
+    capacity: bigint;
+    period: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace BridgeMintedEvent {
+  export type InputTuple = [
+    bridge: AddressLike,
+    to: AddressLike,
+    amount: BigNumberish
+  ];
+  export type OutputTuple = [bridge: string, to: string, amount: bigint];
+  export interface OutputObject {
+    bridge: string;
+    to: string;
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace BridgeRemovedEvent {
+  export type InputTuple = [bridge: AddressLike];
+  export type OutputTuple = [bridge: string];
+  export interface OutputObject {
+    bridge: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace BridgeUpdatedEvent {
+  export type InputTuple = [
+    bridge: AddressLike,
+    capacity: BigNumberish,
+    period: BigNumberish
+  ];
+  export type OutputTuple = [bridge: string, capacity: bigint, period: bigint];
+  export interface OutputObject {
+    bridge: string;
+    capacity: bigint;
+    period: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace EIP712DomainChangedEvent {
   export type InputTuple = [];
   export type OutputTuple = [];
@@ -721,6 +917,19 @@ export namespace MinTimelockUpdatedEvent {
   export interface OutputObject {
     previous: bigint;
     current: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MintCapChangeQueuedEvent {
+  export type InputTuple = [actionId: BigNumberish, newCap: BigNumberish];
+  export type OutputTuple = [actionId: bigint, newCap: bigint];
+  export interface OutputObject {
+    actionId: bigint;
+    newCap: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -993,6 +1202,10 @@ export interface StableNaira extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  ACTION_GRACE_PERIOD: TypedContractMethod<[], [bigint], "view">;
+
+  BRIDGE_ROLE: TypedContractMethod<[], [string], "view">;
+
   DEFAULT_ADMIN_ROLE: TypedContractMethod<[], [string], "view">;
 
   DOMAIN_SEPARATOR: TypedContractMethod<[], [string], "view">;
@@ -1035,6 +1248,26 @@ export interface StableNaira extends BaseContract {
 
   balanceOf: TypedContractMethod<[account: AddressLike], [bigint], "view">;
 
+  bridgeBurnAvailable: TypedContractMethod<
+    [bridge: AddressLike],
+    [bigint],
+    "view"
+  >;
+
+  bridgeLimit: TypedContractMethod<
+    [bridge: AddressLike],
+    [StableNaira.BridgeLimitStructOutput],
+    "view"
+  >;
+
+  bridgeMintAvailable: TypedContractMethod<
+    [bridge: AddressLike],
+    [bigint],
+    "view"
+  >;
+
+  bridges: TypedContractMethod<[account: AddressLike], [boolean], "view">;
+
   burn: TypedContractMethod<[amount: BigNumberish], [void], "nonpayable">;
 
   burnFrom: TypedContractMethod<
@@ -1043,26 +1276,19 @@ export interface StableNaira extends BaseContract {
     "nonpayable"
   >;
 
-  cancelMint: TypedContractMethod<
+  cancelAction: TypedContractMethod<
     [actionId: BigNumberish],
     [void],
     "nonpayable"
   >;
 
-  cancelSetMinTimelock: TypedContractMethod<
-    [actionId: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  cancelSetTimelock: TypedContractMethod<
-    [actionId: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  cancelUpgrade: TypedContractMethod<
-    [actionId: BigNumberish],
+  commitAddBridge: TypedContractMethod<
+    [
+      actionId: BigNumberish,
+      bridge: AddressLike,
+      capacity: BigNumberish,
+      period: BigNumberish
+    ],
     [void],
     "nonpayable"
   >;
@@ -1075,6 +1301,12 @@ export interface StableNaira extends BaseContract {
 
   commitSetMinTimelock: TypedContractMethod<
     [actionId: BigNumberish, newMin: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  commitSetMintCap: TypedContractMethod<
+    [actionId: BigNumberish, newCap: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -1151,7 +1383,7 @@ export interface StableNaira extends BaseContract {
 
   mint: TypedContractMethod<
     [to: AddressLike, amount: BigNumberish],
-    [bigint],
+    [boolean],
     "nonpayable"
   >;
 
@@ -1193,6 +1425,24 @@ export interface StableNaira extends BaseContract {
 
   proxiableUUID: TypedContractMethod<[], [string], "view">;
 
+  queueAddBridge: TypedContractMethod<
+    [bridge: AddressLike, capacity: BigNumberish, period: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
+
+  queueMint: TypedContractMethod<
+    [to: AddressLike, amount: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
+
+  queueSetMintCap: TypedContractMethod<
+    [newCap: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
+
   queueUpgrade: TypedContractMethod<
     [newImpl: AddressLike, data: BytesLike],
     [bigint],
@@ -1201,6 +1451,12 @@ export interface StableNaira extends BaseContract {
 
   redeemRequest: TypedContractMethod<
     [amount: BigNumberish, offChainReference: string],
+    [void],
+    "nonpayable"
+  >;
+
+  removeBridge: TypedContractMethod<
+    [bridge: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -1255,8 +1511,6 @@ export interface StableNaira extends BaseContract {
     "nonpayable"
   >;
 
-  setMintCap: TypedContractMethod<[newCap: BigNumberish], [void], "nonpayable">;
-
   setTimelock: TypedContractMethod<
     [newTl: BigNumberish],
     [bigint],
@@ -1305,6 +1559,12 @@ export interface StableNaira extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "ACTION_GRACE_PERIOD"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "BRIDGE_ROLE"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "DEFAULT_ADMIN_ROLE"
   ): TypedContractMethod<[], [string], "view">;
@@ -1365,6 +1625,22 @@ export interface StableNaira extends BaseContract {
     nameOrSignature: "balanceOf"
   ): TypedContractMethod<[account: AddressLike], [bigint], "view">;
   getFunction(
+    nameOrSignature: "bridgeBurnAvailable"
+  ): TypedContractMethod<[bridge: AddressLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "bridgeLimit"
+  ): TypedContractMethod<
+    [bridge: AddressLike],
+    [StableNaira.BridgeLimitStructOutput],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "bridgeMintAvailable"
+  ): TypedContractMethod<[bridge: AddressLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "bridges"
+  ): TypedContractMethod<[account: AddressLike], [boolean], "view">;
+  getFunction(
     nameOrSignature: "burn"
   ): TypedContractMethod<[amount: BigNumberish], [void], "nonpayable">;
   getFunction(
@@ -1375,17 +1651,20 @@ export interface StableNaira extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "cancelMint"
+    nameOrSignature: "cancelAction"
   ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "cancelSetMinTimelock"
-  ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "cancelSetTimelock"
-  ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "cancelUpgrade"
-  ): TypedContractMethod<[actionId: BigNumberish], [void], "nonpayable">;
+    nameOrSignature: "commitAddBridge"
+  ): TypedContractMethod<
+    [
+      actionId: BigNumberish,
+      bridge: AddressLike,
+      capacity: BigNumberish,
+      period: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "commitMint"
   ): TypedContractMethod<
@@ -1397,6 +1676,13 @@ export interface StableNaira extends BaseContract {
     nameOrSignature: "commitSetMinTimelock"
   ): TypedContractMethod<
     [actionId: BigNumberish, newMin: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "commitSetMintCap"
+  ): TypedContractMethod<
+    [actionId: BigNumberish, newCap: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -1484,7 +1770,7 @@ export interface StableNaira extends BaseContract {
     nameOrSignature: "mint"
   ): TypedContractMethod<
     [to: AddressLike, amount: BigNumberish],
-    [bigint],
+    [boolean],
     "nonpayable"
   >;
   getFunction(
@@ -1537,6 +1823,23 @@ export interface StableNaira extends BaseContract {
     nameOrSignature: "proxiableUUID"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "queueAddBridge"
+  ): TypedContractMethod<
+    [bridge: AddressLike, capacity: BigNumberish, period: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "queueMint"
+  ): TypedContractMethod<
+    [to: AddressLike, amount: BigNumberish],
+    [bigint],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "queueSetMintCap"
+  ): TypedContractMethod<[newCap: BigNumberish], [bigint], "nonpayable">;
+  getFunction(
     nameOrSignature: "queueUpgrade"
   ): TypedContractMethod<
     [newImpl: AddressLike, data: BytesLike],
@@ -1550,6 +1853,9 @@ export interface StableNaira extends BaseContract {
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "removeBridge"
+  ): TypedContractMethod<[bridge: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "removeFreezer"
   ): TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
@@ -1589,9 +1895,6 @@ export interface StableNaira extends BaseContract {
   getFunction(
     nameOrSignature: "setMinTimelock"
   ): TypedContractMethod<[newMin: BigNumberish], [bigint], "nonpayable">;
-  getFunction(
-    nameOrSignature: "setMintCap"
-  ): TypedContractMethod<[newCap: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "setTimelock"
   ): TypedContractMethod<[newTl: BigNumberish], [bigint], "nonpayable">;
@@ -1678,6 +1981,41 @@ export interface StableNaira extends BaseContract {
     ApprovalEvent.OutputObject
   >;
   getEvent(
+    key: "BridgeBurned"
+  ): TypedContractEvent<
+    BridgeBurnedEvent.InputTuple,
+    BridgeBurnedEvent.OutputTuple,
+    BridgeBurnedEvent.OutputObject
+  >;
+  getEvent(
+    key: "BridgeChangeQueued"
+  ): TypedContractEvent<
+    BridgeChangeQueuedEvent.InputTuple,
+    BridgeChangeQueuedEvent.OutputTuple,
+    BridgeChangeQueuedEvent.OutputObject
+  >;
+  getEvent(
+    key: "BridgeMinted"
+  ): TypedContractEvent<
+    BridgeMintedEvent.InputTuple,
+    BridgeMintedEvent.OutputTuple,
+    BridgeMintedEvent.OutputObject
+  >;
+  getEvent(
+    key: "BridgeRemoved"
+  ): TypedContractEvent<
+    BridgeRemovedEvent.InputTuple,
+    BridgeRemovedEvent.OutputTuple,
+    BridgeRemovedEvent.OutputObject
+  >;
+  getEvent(
+    key: "BridgeUpdated"
+  ): TypedContractEvent<
+    BridgeUpdatedEvent.InputTuple,
+    BridgeUpdatedEvent.OutputTuple,
+    BridgeUpdatedEvent.OutputObject
+  >;
+  getEvent(
     key: "EIP712DomainChanged"
   ): TypedContractEvent<
     EIP712DomainChangedEvent.InputTuple,
@@ -1704,6 +2042,13 @@ export interface StableNaira extends BaseContract {
     MinTimelockUpdatedEvent.InputTuple,
     MinTimelockUpdatedEvent.OutputTuple,
     MinTimelockUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "MintCapChangeQueued"
+  ): TypedContractEvent<
+    MintCapChangeQueuedEvent.InputTuple,
+    MintCapChangeQueuedEvent.OutputTuple,
+    MintCapChangeQueuedEvent.OutputObject
   >;
   getEvent(
     key: "MintCapUpdated"
@@ -1871,6 +2216,61 @@ export interface StableNaira extends BaseContract {
       ApprovalEvent.OutputObject
     >;
 
+    "BridgeBurned(address,address,uint256)": TypedContractEvent<
+      BridgeBurnedEvent.InputTuple,
+      BridgeBurnedEvent.OutputTuple,
+      BridgeBurnedEvent.OutputObject
+    >;
+    BridgeBurned: TypedContractEvent<
+      BridgeBurnedEvent.InputTuple,
+      BridgeBurnedEvent.OutputTuple,
+      BridgeBurnedEvent.OutputObject
+    >;
+
+    "BridgeChangeQueued(uint256,address,uint96,uint48)": TypedContractEvent<
+      BridgeChangeQueuedEvent.InputTuple,
+      BridgeChangeQueuedEvent.OutputTuple,
+      BridgeChangeQueuedEvent.OutputObject
+    >;
+    BridgeChangeQueued: TypedContractEvent<
+      BridgeChangeQueuedEvent.InputTuple,
+      BridgeChangeQueuedEvent.OutputTuple,
+      BridgeChangeQueuedEvent.OutputObject
+    >;
+
+    "BridgeMinted(address,address,uint256)": TypedContractEvent<
+      BridgeMintedEvent.InputTuple,
+      BridgeMintedEvent.OutputTuple,
+      BridgeMintedEvent.OutputObject
+    >;
+    BridgeMinted: TypedContractEvent<
+      BridgeMintedEvent.InputTuple,
+      BridgeMintedEvent.OutputTuple,
+      BridgeMintedEvent.OutputObject
+    >;
+
+    "BridgeRemoved(address)": TypedContractEvent<
+      BridgeRemovedEvent.InputTuple,
+      BridgeRemovedEvent.OutputTuple,
+      BridgeRemovedEvent.OutputObject
+    >;
+    BridgeRemoved: TypedContractEvent<
+      BridgeRemovedEvent.InputTuple,
+      BridgeRemovedEvent.OutputTuple,
+      BridgeRemovedEvent.OutputObject
+    >;
+
+    "BridgeUpdated(address,uint96,uint48)": TypedContractEvent<
+      BridgeUpdatedEvent.InputTuple,
+      BridgeUpdatedEvent.OutputTuple,
+      BridgeUpdatedEvent.OutputObject
+    >;
+    BridgeUpdated: TypedContractEvent<
+      BridgeUpdatedEvent.InputTuple,
+      BridgeUpdatedEvent.OutputTuple,
+      BridgeUpdatedEvent.OutputObject
+    >;
+
     "EIP712DomainChanged()": TypedContractEvent<
       EIP712DomainChangedEvent.InputTuple,
       EIP712DomainChangedEvent.OutputTuple,
@@ -1913,6 +2313,17 @@ export interface StableNaira extends BaseContract {
       MinTimelockUpdatedEvent.InputTuple,
       MinTimelockUpdatedEvent.OutputTuple,
       MinTimelockUpdatedEvent.OutputObject
+    >;
+
+    "MintCapChangeQueued(uint256,uint256)": TypedContractEvent<
+      MintCapChangeQueuedEvent.InputTuple,
+      MintCapChangeQueuedEvent.OutputTuple,
+      MintCapChangeQueuedEvent.OutputObject
+    >;
+    MintCapChangeQueued: TypedContractEvent<
+      MintCapChangeQueuedEvent.InputTuple,
+      MintCapChangeQueuedEvent.OutputTuple,
+      MintCapChangeQueuedEvent.OutputObject
     >;
 
     "MintCapUpdated(uint256,uint256)": TypedContractEvent<

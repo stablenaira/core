@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 /**
  * Reusable deploy helpers. Tests load these via @nomicfoundation/hardhat-network-helpers
@@ -18,6 +19,63 @@ export interface StackOpts {
 }
 
 const ONE_HOUR = 3600n;
+
+/**
+ * Default rate limit granted to bridges in tests: effectively unbounded per day
+ * while staying inside the uint96 capacity field (max ~7.9e28).
+ */
+export const BRIDGE_CAPACITY = 10n ** 24n;
+export const BRIDGE_PERIOD = 86_400n;
+
+/**
+ * Grants BRIDGE_ROLE with a mint rate limit via the token's timelocked
+ * queue → commit path, advancing time past the delay.
+ *
+ * Bridges mint synchronously (a cross-chain transfer cannot wait on a
+ * governance commit — the user's tokens are already burned on the source
+ * chain), so the authority to do so is what carries the timelock instead.
+ */
+export async function registerBridge(
+  stableNaira: any,
+  admin: any,
+  bridge: string,
+  capacity = BRIDGE_CAPACITY,
+  period = BRIDGE_PERIOD
+) {
+  const tx = await stableNaira
+    .connect(admin)
+    .queueAddBridge(bridge, capacity, period);
+  const receipt = await tx.wait();
+  const ev = receipt.logs.find(
+    (l: any) => l.fragment?.name === "BridgeChangeQueued"
+  ) as any;
+  const actionId = ev.args.actionId as bigint;
+
+  await time.increase(Number(await stableNaira.timelock()) + 1);
+  await stableNaira
+    .connect(admin)
+    .commitAddBridge(actionId, bridge, capacity, period);
+  return actionId;
+}
+
+/** Queues a treasury mint, waits out the timelock, and commits it. */
+export async function treasuryMint(
+  stableNaira: any,
+  admin: any,
+  to: string,
+  amount: bigint
+) {
+  const tx = await stableNaira.connect(admin).queueMint(to, amount);
+  const receipt = await tx.wait();
+  const ev = receipt.logs.find(
+    (l: any) => l.fragment?.name === "MintQueued"
+  ) as any;
+  const actionId = ev.args.actionId as bigint;
+
+  await time.increase(Number(await stableNaira.timelock()) + 1);
+  await stableNaira.connect(admin).commitMint(actionId, to, amount);
+  return actionId;
+}
 
 export async function deployStableNaira(admin: string, name = "StableNaira", symbol = "SNR") {
   const Factory = await ethers.getContractFactory("StableNairaUUPSDeployer");
@@ -172,8 +230,9 @@ export async function deployStack(opts: StackOpts = {}) {
     initialMinTimelock
   );
 
-  // Grant MINTER_ROLE to the bridge so it can mint on receive / burn on send.
-  await stableNaira.connect(deployer).addMinter(await tokenMessenger.getAddress());
+  // Grant BRIDGE_ROLE (rate-limited synchronous mint + allowance-gated burn)
+  // to the bridge so it can mint on receive / burn on send.
+  await registerBridge(stableNaira, deployer, await tokenMessenger.getAddress());
 
   return {
     stableNaira,

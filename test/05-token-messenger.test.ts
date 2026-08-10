@@ -7,6 +7,8 @@ import {
   deployTokenMessenger,
   deployMessageTransmitter,
   deployValidatorRegistry,
+  registerBridge,
+  treasuryMint,
 } from "./helpers/fixtures";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -78,7 +80,7 @@ describe("TokenMessenger", () => {
     );
 
     // Grant MINTER_ROLE to bridge so it can mint+burn.
-    await stableNaira.connect(owner).addMinter(await tokenMessenger.getAddress());
+    await registerBridge(stableNaira, owner, await tokenMessenger.getAddress());
 
     return { stableNaira, verifier, messageTransmitter, tokenMessenger, owner, alice, bob };
   }
@@ -130,7 +132,7 @@ describe("TokenMessenger", () => {
         fixture
       );
       await registerRemoteRouter(tokenMessenger, owner, REMOTE_DOMAIN, REMOTE_ROUTER);
-      await stableNaira.connect(owner).mint(alice.address, 1000n);
+      await treasuryMint(stableNaira, owner, alice.address, 1000n);
 
       const recipient = addrToBytes32(alice.address);
       const burnTokenAddr = await stableNaira.getAddress();
@@ -152,7 +154,7 @@ describe("TokenMessenger", () => {
     it("rejects zero amount / zero recipient / wrong token / unregistered remote", async () => {
       const { tokenMessenger, stableNaira, owner, alice } = await loadFixture(fixture);
       await registerRemoteRouter(tokenMessenger, owner, REMOTE_DOMAIN, REMOTE_ROUTER);
-      await stableNaira.connect(owner).mint(alice.address, 1000n);
+      await treasuryMint(stableNaira, owner, alice.address, 1000n);
       const burnTokenAddr = await stableNaira.getAddress();
       const recipient = addrToBytes32(alice.address);
 
@@ -173,7 +175,7 @@ describe("TokenMessenger", () => {
     it("paused blocks depositForBurn", async () => {
       const { tokenMessenger, stableNaira, owner, alice } = await loadFixture(fixture);
       await registerRemoteRouter(tokenMessenger, owner, REMOTE_DOMAIN, REMOTE_ROUTER);
-      await stableNaira.connect(owner).mint(alice.address, 100n);
+      await treasuryMint(stableNaira, owner, alice.address, 100n);
       await tokenMessenger.connect(owner).pause();
       await expect(
         tokenMessenger
@@ -187,7 +189,7 @@ describe("TokenMessenger", () => {
         fixture
       );
       await registerRemoteRouter(tokenMessenger, owner, REMOTE_DOMAIN, REMOTE_ROUTER);
-      await stableNaira.connect(owner).mint(alice.address, 100n);
+      await treasuryMint(stableNaira, owner, alice.address, 100n);
       const recipient = addrToBytes32(alice.address);
       const destCaller = addrToBytes32(bob.address);
 

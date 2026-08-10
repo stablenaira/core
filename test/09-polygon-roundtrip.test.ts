@@ -8,6 +8,8 @@ import {
   deployMessageTransmitter,
   deployValidatorRegistry,
   deployMultisigVerifier,
+  registerBridge,
+  treasuryMint,
 } from "./helpers/fixtures";
 
 /**
@@ -87,7 +89,7 @@ describe("Polygon <-> EVM cross-chain round-trip (domain 80002)", () => {
       await snrPoly.getAddress(),
       owner.address
     );
-    await snrPoly.connect(owner).addMinter(await bridgePoly.getAddress());
+    await registerBridge(snrPoly, owner, await bridgePoly.getAddress());
 
     // ---- Base Sepolia stack (domain 84532) ----
     const { stableNaira: snrBase } = await deployStableNaira(owner.address, "StableNaira", "SNR");
@@ -108,7 +110,7 @@ describe("Polygon <-> EVM cross-chain round-trip (domain 80002)", () => {
       await snrBase.getAddress(),
       owner.address
     );
-    await snrBase.connect(owner).addMinter(await bridgeBase.getAddress());
+    await registerBridge(snrBase, owner, await bridgeBase.getAddress());
 
     // ---- Cross-register remote routers (queue + timelock + commit) ----
     const polyBytes32 = addrToBytes32(await bridgePoly.getAddress());
@@ -141,7 +143,7 @@ describe("Polygon <-> EVM cross-chain round-trip (domain 80002)", () => {
     const { owner, alice, snrPoly, snrBase, tmBase, bridgePoly } =
       await loadFixture(fixture);
 
-    await snrPoly.connect(owner).mint(alice.address, 1000n);
+    await treasuryMint(snrPoly, owner, alice.address, 1000n);
     const recipient = addrToBytes32(alice.address);
 
     const receipt = await (
@@ -171,7 +173,7 @@ describe("Polygon <-> EVM cross-chain round-trip (domain 80002)", () => {
     const { owner, alice, snrPoly, snrBase, tmPoly, bridgeBase } =
       await loadFixture(fixture);
 
-    await snrBase.connect(owner).mint(alice.address, 800n);
+    await treasuryMint(snrBase, owner, alice.address, 800n);
     const recipient = addrToBytes32(alice.address);
 
     const receipt = await (
@@ -195,7 +197,7 @@ describe("Polygon <-> EVM cross-chain round-trip (domain 80002)", () => {
 
   it("attestation bound to the wrong destination transmitter is rejected", async () => {
     const { owner, alice, snrPoly, tmPoly, tmBase, bridgePoly } = await loadFixture(fixture);
-    await snrPoly.connect(owner).mint(alice.address, 100n);
+    await treasuryMint(snrPoly, owner, alice.address, 100n);
     const recipient = addrToBytes32(alice.address);
 
     const receipt = await (

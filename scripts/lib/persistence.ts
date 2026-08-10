@@ -25,6 +25,27 @@ export interface RemoteRouterEntry {
   committedAt?: string;
 }
 
+/**
+ * A timelocked action queued on the StableNaira token itself (granting the
+ * bridge BRIDGE_ROLE, setting the mint cap). Both pass through the token's
+ * queue → commit gate, so the deploy phase records the actionId and the
+ * commit phase settles it once the eta has elapsed.
+ */
+export interface TokenActionEntry {
+  kind: "addBridge" | "setMintCap";
+  actionId: string;
+  status: "queued" | "committed";
+  eta?: number;
+  queuedAt?: string;
+  committedAt?: string;
+  /** addBridge */
+  bridge?: string;
+  capacity?: string;
+  period?: number;
+  /** setMintCap */
+  cap?: string;
+}
+
 export interface DeploymentRecord {
   network: string;
   chainId: number;
@@ -43,8 +64,10 @@ export interface DeploymentRecord {
     maxMessageBodySize?: number;
     oracle?: { decimals: number; reporters: string[]; quorum: number };
     minterRoleGranted?: boolean;
+    bridgeRoleGranted?: boolean;
   };
   remoteRouters: RemoteRouterEntry[];
+  tokenActions?: TokenActionEntry[];
 }
 
 const ROOT = path.resolve(__dirname, "..", "..");

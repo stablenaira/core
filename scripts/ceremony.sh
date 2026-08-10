@@ -8,7 +8,7 @@
 #   START_AT=queue bash scripts/ceremony.sh testnet     # resume from a specific phase
 #
 # Phases (executed in order):
-#   1. deploy   – per-chain stack deploy + addMinter (no timelock)
+#   1. deploy   – per-chain stack deploy + queue BRIDGE_ROLE / mintCap (timelocked)
 #   2. oracle   – BSC-only StableNairaPriceOracle deploy
 #   3. verify   – per-chain Etherscan verify
 #   4. queue    – per-chain queueSetRemoteRouter for each peer

@@ -38,6 +38,7 @@ export declare namespace TimelockedUpgradeable {
 export interface MessageTransmitterInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "ACTION_GRACE_PERIOD"
       | "MAX_TIMELOCK"
       | "MIN_FLOOR_TIMELOCK"
       | "MIN_MAX_BODY_SIZE"
@@ -98,6 +99,10 @@ export interface MessageTransmitterInterface extends Interface {
       | "VerifierChangeQueued"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "ACTION_GRACE_PERIOD",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "MAX_TIMELOCK",
     values?: undefined
@@ -228,6 +233,10 @@ export interface MessageTransmitterInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "version", values?: undefined): string;
 
+  decodeFunctionResult(
+    functionFragment: "ACTION_GRACE_PERIOD",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "MAX_TIMELOCK",
     data: BytesLike
@@ -651,6 +660,8 @@ export interface MessageTransmitter extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  ACTION_GRACE_PERIOD: TypedContractMethod<[], [bigint], "view">;
+
   MAX_TIMELOCK: TypedContractMethod<[], [bigint], "view">;
 
   MIN_FLOOR_TIMELOCK: TypedContractMethod<[], [bigint], "view">;
@@ -797,6 +808,9 @@ export interface MessageTransmitter extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "ACTION_GRACE_PERIOD"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "MAX_TIMELOCK"
   ): TypedContractMethod<[], [bigint], "view">;

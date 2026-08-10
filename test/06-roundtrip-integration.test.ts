@@ -8,6 +8,8 @@ import {
   deployMessageTransmitter,
   deployValidatorRegistry,
   deployMultisigVerifier,
+  registerBridge,
+  treasuryMint,
 } from "./helpers/fixtures";
 
 const BYTES32_ZERO = "0x" + "00".repeat(32);
@@ -63,7 +65,7 @@ describe("Cross-chain round-trip", () => {
       await tokenA.getAddress(),
       owner.address
     );
-    await tokenA.connect(owner).addMinter(await bridgeA.getAddress());
+    await registerBridge(tokenA, owner, await bridgeA.getAddress());
 
     // ---- Chain B stack ----
     const { stableNaira: tokenB } = await deployStableNaira(owner.address, "TokenB", "TB");
@@ -84,7 +86,7 @@ describe("Cross-chain round-trip", () => {
       await tokenB.getAddress(),
       owner.address
     );
-    await tokenB.connect(owner).addMinter(await bridgeB.getAddress());
+    await registerBridge(tokenB, owner, await bridgeB.getAddress());
 
     // ---- Wire remote routers (queue + commit each side) ----
     const bridgeBBytes32 = addrToBytes32(await bridgeB.getAddress());
@@ -122,7 +124,7 @@ describe("Cross-chain round-trip", () => {
     const { owner, alice, tokenA, tokenB, tmA, tmB, bridgeA, bridgeB } = await loadFixture(fixture);
 
     // Mint 1000 to alice on chain A.
-    await tokenA.connect(owner).mint(alice.address, 1000n);
+    await treasuryMint(tokenA, owner, alice.address, 1000n);
     expect(await tokenA.balanceOf(alice.address)).to.equal(1000n);
 
     // alice initiates cross-chain transfer.
@@ -178,7 +180,7 @@ describe("Cross-chain round-trip", () => {
 
   it("attestation signed for wrong transmitter rejected", async () => {
     const { owner, alice, tokenA, bridgeA, tmA, tmB } = await loadFixture(fixture);
-    await tokenA.connect(owner).mint(alice.address, 100n);
+    await treasuryMint(tokenA, owner, alice.address, 100n);
     const recipient = addrToBytes32(alice.address);
     const tx = await bridgeA
       .connect(alice)

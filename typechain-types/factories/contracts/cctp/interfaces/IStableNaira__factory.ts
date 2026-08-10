@@ -11,7 +11,7 @@ import type {
 const _abi = [
   {
     inputs: [],
-    name: "MINTER_ROLE",
+    name: "BRIDGE_ROLE",
     outputs: [
       {
         internalType: "bytes32",
@@ -20,19 +20,6 @@ const _abi = [
       },
     ],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-    ],
-    name: "addMinter",
-    outputs: [],
-    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -106,6 +93,63 @@ const _abi = [
     inputs: [
       {
         internalType: "address",
+        name: "bridge",
+        type: "address",
+      },
+    ],
+    name: "bridgeBurnAvailable",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "bridge",
+        type: "address",
+      },
+    ],
+    name: "bridgeMintAvailable",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+    ],
+    name: "bridges",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
         name: "account",
         type: "address",
       },
@@ -116,6 +160,34 @@ const _abi = [
       },
     ],
     name: "burnFrom",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "actionId",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "bridge",
+        type: "address",
+      },
+      {
+        internalType: "uint128",
+        name: "capacity",
+        type: "uint128",
+      },
+      {
+        internalType: "uint48",
+        name: "period",
+        type: "uint48",
+      },
+    ],
+    name: "commitAddBridge",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -190,25 +262,6 @@ const _abi = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-    ],
-    name: "minters",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
     inputs: [],
     name: "paused",
     outputs: [
@@ -225,11 +278,40 @@ const _abi = [
     inputs: [
       {
         internalType: "address",
-        name: "account",
+        name: "bridge",
+        type: "address",
+      },
+      {
+        internalType: "uint128",
+        name: "capacity",
+        type: "uint128",
+      },
+      {
+        internalType: "uint48",
+        name: "period",
+        type: "uint48",
+      },
+    ],
+    name: "queueAddBridge",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "actionId",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "bridge",
         type: "address",
       },
     ],
-    name: "removeMinter",
+    name: "removeBridge",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

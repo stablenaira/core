@@ -18,7 +18,9 @@ import { IStableNaira } from "./interfaces/IStableNaira.sol";
 ///         deployment per chain. Each deployment:
 ///           - is registered as the `recipient` for messages from peer
 ///             TokenMessengers on other domains;
-///           - holds `MINTER_ROLE` on the local `StableNaira`;
+///           - holds `BRIDGE_ROLE` on the local `StableNaira`, which permits
+///             synchronous minting bounded by a per-bridge refilling rate
+///             limit (see `StableNaira.queueAddBridge`);
 ///           - knows the local `MessageTransmitter` it dispatches through.
 ///
 ///         All sensitive admin operations — UUPS upgrades, swapping the
@@ -136,10 +138,13 @@ contract TokenMessenger is
     /* ----------------------------- deposit ----------------------------- */
 
     /// @inheritdoc ITokenMessenger
-    /// @dev SECURITY NOTE: this calls `IStableNaira.burnFrom(msg.sender, amount)`,
-    ///      which is gated only by `MINTER_ROLE` on the token (not by ERC20
-    ///      allowance). The bridge holds that role; if it is compromised it
-    ///      can burn any user's balance. Audit finding HIGH-03.
+    /// @dev No `approve` is needed — `IStableNaira.burnFrom` is gated on
+    ///      `BRIDGE_ROLE`, not on an ERC20 allowance, so this is a single user
+    ///      transaction. The trade-off is that this contract can burn any
+    ///      holder's balance; the token's burn rate limit is what bounds that,
+    ///      and `removeBridge` is the kill switch. Reverts with
+    ///      `BridgeRateLimitExceeded` when the burn allowance is exhausted —
+    ///      transient, and it refills with time.
     function depositForBurn(
         uint256 amount,
         uint32 destinationDomain,
@@ -278,37 +283,45 @@ contract TokenMessenger is
 
     /* --------------------- commit: sensitive admin --------------------- */
 
-    function commitSetLocalToken(uint256 actionId, address newToken) external {
+    /* Commits are owner-gated for the same reason the queue side is: an
+       unauthenticated commit lets anyone front-run the owner's `cancel`, which
+       would close the cancellation window at `eta` rather than at execution. */
+
+    function commitSetLocalToken(uint256 actionId, address newToken) external onlyOwner {
         _consumeAction(actionId, _hashLocalToken(newToken));
         emit LocalTokenUpdated(localToken, newToken);
         localToken = newToken;
     }
 
-    function commitSetMessageTransmitter(uint256 actionId, address newTransmitter) external {
+    function commitSetMessageTransmitter(uint256 actionId, address newTransmitter) external onlyOwner {
         _consumeAction(actionId, _hashTransmitter(newTransmitter));
         emit MessageTransmitterUpdated(messageTransmitter, newTransmitter);
         messageTransmitter = newTransmitter;
     }
 
-    function commitSetRemoteRouter(uint256 actionId, uint32 domain, bytes32 router) external {
+    function commitSetRemoteRouter(uint256 actionId, uint32 domain, bytes32 router) external onlyOwner {
         _consumeAction(actionId, _hashRemoteRouter(domain, router));
         bytes32 previous = _remoteRouters[domain];
         _remoteRouters[domain] = router;
         emit RemoteRouterUpdated(domain, previous, router);
     }
 
-    function commitSetFeeConfig(uint256 actionId, uint256 newFeeBps, address newFeeRecipient) external {
+    function commitSetFeeConfig(uint256 actionId, uint256 newFeeBps, address newFeeRecipient)
+        external
+        onlyOwner
+    {
         _consumeAction(actionId, _hashFeeConfig(newFeeBps, newFeeRecipient));
         emit FeeConfigUpdated(feeBps, newFeeBps, feeRecipient, newFeeRecipient);
         feeBps = newFeeBps;
         feeRecipient = newFeeRecipient;
     }
 
-    function commitUpgrade(uint256 actionId, address newImpl, bytes calldata data) external {
+    function commitUpgrade(uint256 actionId, address newImpl, bytes calldata data) external onlyOwner {
         _consumeAction(actionId, _hashUpgrade(newImpl, data));
         _authorizedImpl = newImpl;
+        // `_authorizeUpgrade` clears the flag before `data` is delegatecalled
+        // into the new implementation, so the clear cannot overwrite V2 state.
         upgradeToAndCall(newImpl, data);
-        delete _authorizedImpl;
         emit UpgradeCommitted(actionId, newImpl);
     }
 
@@ -374,7 +387,8 @@ contract TokenMessenger is
 
     function _authorizeUpgrade(
         address newImplementation
-    ) internal view override {
+    ) internal override {
         if (newImplementation != _authorizedImpl) revert UpgradeNotAuthorized();
+        delete _authorizedImpl;
     }
 }

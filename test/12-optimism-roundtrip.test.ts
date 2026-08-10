@@ -8,6 +8,8 @@ import {
   deployMessageTransmitter,
   deployValidatorRegistry,
   deployMultisigVerifier,
+  registerBridge,
+  treasuryMint,
 } from "./helpers/fixtures";
 
 /**
@@ -87,7 +89,7 @@ describe("Optimism <-> EVM cross-chain round-trip (domain 11155420)", () => {
       await snrOp.getAddress(),
       owner.address
     );
-    await snrOp.connect(owner).addMinter(await bridgeOp.getAddress());
+    await registerBridge(snrOp, owner, await bridgeOp.getAddress());
 
     // ---- Base Sepolia stack (domain 84532) ----
     const { stableNaira: snrBase } = await deployStableNaira(owner.address, "StableNaira", "SNR");
@@ -108,7 +110,7 @@ describe("Optimism <-> EVM cross-chain round-trip (domain 11155420)", () => {
       await snrBase.getAddress(),
       owner.address
     );
-    await snrBase.connect(owner).addMinter(await bridgeBase.getAddress());
+    await registerBridge(snrBase, owner, await bridgeBase.getAddress());
 
     // ---- Cross-register remote routers (queue + timelock + commit) ----
     const opBytes32 = addrToBytes32(await bridgeOp.getAddress());
@@ -141,7 +143,7 @@ describe("Optimism <-> EVM cross-chain round-trip (domain 11155420)", () => {
     const { owner, alice, snrOp, snrBase, tmBase, bridgeOp } =
       await loadFixture(fixture);
 
-    await snrOp.connect(owner).mint(alice.address, 1000n);
+    await treasuryMint(snrOp, owner, alice.address, 1000n);
     const recipient = addrToBytes32(alice.address);
 
     const receipt = await (
@@ -171,7 +173,7 @@ describe("Optimism <-> EVM cross-chain round-trip (domain 11155420)", () => {
     const { owner, alice, snrOp, snrBase, tmOp, bridgeBase } =
       await loadFixture(fixture);
 
-    await snrBase.connect(owner).mint(alice.address, 800n);
+    await treasuryMint(snrBase, owner, alice.address, 800n);
     const recipient = addrToBytes32(alice.address);
 
     const receipt = await (
@@ -195,7 +197,7 @@ describe("Optimism <-> EVM cross-chain round-trip (domain 11155420)", () => {
 
   it("attestation bound to the wrong destination transmitter is rejected", async () => {
     const { owner, alice, snrOp, tmOp, tmBase, bridgeOp } = await loadFixture(fixture);
-    await snrOp.connect(owner).mint(alice.address, 100n);
+    await treasuryMint(snrOp, owner, alice.address, 100n);
     const recipient = addrToBytes32(alice.address);
 
     const receipt = await (

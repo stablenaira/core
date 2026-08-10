@@ -11,7 +11,19 @@ export interface NetworkSpec {
 }
 
 export interface CommonParams {
-  token: { name: string; symbol: string; mintCap: string };
+  token: {
+    name: string;
+    symbol: string;
+    mintCap: string;
+    /**
+     * Rate limit for the local bridge's synchronous mint path, as a capacity
+     * that refills linearly over `bridgePeriodSeconds`. This is what bounds a
+     * bridge compromise — size it to a plausible peak day of legitimate
+     * cross-chain volume, not to the total supply.
+     */
+    bridgeCapacity?: string;
+    bridgePeriodSeconds?: number;
+  };
   validatorRegistry: {
     validators: string[];
     threshold: number;

@@ -34,12 +34,35 @@ import {
   upsertDeployment,
   listDeployments,
   RemoteRouterEntry,
+  TokenActionEntry,
 } from "./lib/persistence";
 
 const PHASE = (process.env.PHASE ?? "deploy").toLowerCase();
 const SKIP_WAIT = process.env.SKIP_WAIT === "1"; // for testing only
 const GROUP = (process.env.GROUP ?? "testnet").toLowerCase();
 const TIMELOCK_BUFFER_SEC = 60; // pad above contract floor when waiting
+
+/* Default bridge mint rate limit when the template does not pin one.
+ * Token has 2 decimals, so this is 10,000,000.00 NGN per rolling day —
+ * generous for testnet volume while still bounding a bridge compromise. */
+const DEFAULT_BRIDGE_CAPACITY = 1_000_000_000n;
+const DEFAULT_BRIDGE_PERIOD = 86_400;
+
+/** Pulls actionId + eta out of a queue transaction's receipt. */
+function readQueued(
+  receipt: any,
+  eventName: string
+): { actionId: string; eta: number } {
+  const evt = receipt.logs.find((l: any) => l.fragment?.name === eventName) as any;
+  if (!evt) throw new Error(`${eventName} event not found in receipt`);
+  // eta comes from the mixin's ActionQueued event in the same tx — more
+  // reliable than a follow-up state read against eventually-consistent RPCs.
+  const tlEvt = receipt.logs.find((l: any) => l.fragment?.name === "ActionQueued") as any;
+  return {
+    actionId: evt.args.actionId.toString(),
+    eta: tlEvt ? Number(tlEvt.args.eta) : 0,
+  };
+}
 
 const RPCS: Record<string, string> = {
   testnet: process.env.BSC_TESTNET_RPC_URL ?? "https://data-seed-prebsc-1-s1.binance.org:8545/",
@@ -259,22 +282,66 @@ async function phaseDeploy(networkName: string, spec: any, template: any) {
   const tokenMessenger = await ethers.getContractAt("TokenMessenger", await tmProxy.getAddress());
   ok(`TokenMessenger proxy`, await tokenMessenger.getAddress());
 
-  /* Grant MINTER_ROLE on token to bridge — required for burnFrom + mint */
-  header(`${EMOJI.unlock} Granting MINTER_ROLE`);
+  /* Queue BRIDGE_ROLE + mint cap on the token.
+   *
+   * Both pass through the token's timelock, so they are queued here and
+   * settled by PHASE=commit-wires once the eta elapses. The bridge cannot
+   * mint or burn until that commit lands — wire the routers first, then
+   * commit everything together. */
+  header(`${EMOJI.unlock} Queueing BRIDGE_ROLE + mint cap`);
   const stable = stableNaira as any;
-  await sendTx(
-    async () => stable.connect(signer).addMinter(await tokenMessenger.getAddress(), await txOverrides()),
-    "addMinter"
-  );
-  ok(`MINTER_ROLE granted`, `bridge ${await tokenMessenger.getAddress()} is now allowed to mint+burnFrom on ${template.common.token.symbol}`);
+  const bridgeAddr = await tokenMessenger.getAddress();
+  const tokenActions: TokenActionEntry[] = [];
 
-  /* MintCap (optional) */
-  if (template.common.token.mintCap && template.common.token.mintCap !== "0") {
-    await sendTx(
-      async () => stable.connect(signer).setMintCap(BigInt(template.common.token.mintCap), await txOverrides()),
-      "setMintCap"
+  const bridgeCapacity = BigInt(
+    template.common.token.bridgeCapacity ?? DEFAULT_BRIDGE_CAPACITY
+  );
+  const bridgePeriod = Number(
+    template.common.token.bridgePeriodSeconds ?? DEFAULT_BRIDGE_PERIOD
+  );
+
+  {
+    const receipt = await sendTx(
+      async () =>
+        stable
+          .connect(signer)
+          .queueAddBridge(bridgeAddr, bridgeCapacity, bridgePeriod, await txOverrides()),
+      "queueAddBridge"
     );
-    ok(`mintCap set`, template.common.token.mintCap);
+    const { actionId, eta } = readQueued(receipt, "BridgeChangeQueued");
+    tokenActions.push({
+      kind: "addBridge",
+      actionId,
+      status: "queued",
+      eta,
+      queuedAt: new Date().toISOString(),
+      bridge: bridgeAddr,
+      capacity: bridgeCapacity.toString(),
+      period: bridgePeriod,
+    });
+    ok(
+      `BRIDGE_ROLE queued`,
+      `actionId=${actionId} eta=${new Date(eta * 1000).toISOString()} ` +
+        `limit=${bridgeCapacity}/${bridgePeriod}s`
+    );
+  }
+
+  if (template.common.token.mintCap && template.common.token.mintCap !== "0") {
+    const cap = BigInt(template.common.token.mintCap);
+    const receipt = await sendTx(
+      async () => stable.connect(signer).queueSetMintCap(cap, await txOverrides()),
+      "queueSetMintCap"
+    );
+    const { actionId, eta } = readQueued(receipt, "MintCapChangeQueued");
+    tokenActions.push({
+      kind: "setMintCap",
+      actionId,
+      status: "queued",
+      eta,
+      queuedAt: new Date().toISOString(),
+      cap: cap.toString(),
+    });
+    ok(`mintCap queued`, `actionId=${actionId} cap=${cap}`);
   }
 
   /* Persist */
@@ -305,9 +372,11 @@ async function phaseDeploy(networkName: string, spec: any, template: any) {
       threshold: template.common.validatorRegistry.threshold,
       feeBps: template.common.tokenMessenger.feeBps,
       maxMessageBodySize: template.common.messageTransmitter.maxMessageBodySize,
-      minterRoleGranted: true,
+      // Queued, not yet granted — settled by PHASE=commit-wires.
+      bridgeRoleGranted: false,
     },
     remoteRouters: [],
+    tokenActions,
   });
   ok(`Saved addresses`, `ignition/deployments/${networkName}/addresses.json`);
 
@@ -515,7 +584,76 @@ async function phaseCommitWires(networkName: string, spec: any) {
   }
 
   upsertDeployment(networkName, { remoteRouters: updated });
+
+  await commitTokenActions(networkName, localRec);
+
   rocket(`${spec.label}: commit phase complete.`);
+}
+
+/**
+ * Settles the timelocked actions queued on the token during PHASE=deploy:
+ * granting the bridge BRIDGE_ROLE with its mint rate limit, and the mint cap.
+ * Until these land the bridge cannot mint or burn.
+ */
+async function commitTokenActions(networkName: string, rec: any) {
+  const pending = (rec.tokenActions ?? []).filter(
+    (a: TokenActionEntry) => a.status === "queued"
+  );
+  if (pending.length === 0) return;
+
+  const [signer] = await ethers.getSigners();
+  const stable = (await ethers.getContractAt(
+    "StableNaira",
+    rec.contracts.stableNaira,
+    signer
+  )) as any;
+
+  header(`${EMOJI.beacon} Committing token actions`);
+  const updated: TokenActionEntry[] = [...(rec.tokenActions ?? [])];
+  let bridgeGranted = rec.configuration?.bridgeRoleGranted === true;
+
+  for (const a of pending) {
+    action(`commit ${a.kind}`, `actionId=${a.actionId}`);
+    try {
+      if (a.kind === "addBridge") {
+        const tx = await stable.commitAddBridge(
+          a.actionId,
+          a.bridge,
+          BigInt(a.capacity!),
+          a.period
+        );
+        await tx.wait();
+        bridgeGranted = true;
+        ok(`BRIDGE_ROLE granted`, `${a.bridge} limit=${a.capacity}/${a.period}s`);
+      } else {
+        const tx = await stable.commitSetMintCap(a.actionId, BigInt(a.cap!));
+        await tx.wait();
+        ok(`mintCap set`, a.cap!);
+      }
+      const idx = updated.findIndex((x) => x.actionId === a.actionId);
+      if (idx >= 0) {
+        updated[idx] = {
+          ...a,
+          status: "committed",
+          committedAt: new Date().toISOString(),
+        };
+      }
+    } catch (err: any) {
+      const msg = err?.message ?? String(err);
+      if (/ActionNotReady/.test(msg)) {
+        warn(`timelock not yet elapsed`, `eta=${a.eta} now=${Math.floor(Date.now() / 1000)}`);
+      } else if (/ActionExpired/.test(msg)) {
+        fail(`action expired — re-run PHASE=deploy to re-queue`, `actionId=${a.actionId}`);
+      } else {
+        fail(`commit ${a.kind} failed`, msg.split("\n")[0]);
+      }
+    }
+  }
+
+  upsertDeployment(networkName, {
+    tokenActions: updated,
+    configuration: { ...rec.configuration, bridgeRoleGranted: bridgeGranted },
+  });
 }
 
 /* ============================ Multi-chain queue / commit ============================ */
@@ -882,12 +1020,36 @@ async function phaseSmoke(networkName: string, spec: any) {
   const stable = await ethers.getContractAt("StableNaira", rec.contracts.stableNaira!, signer);
 
   header(`${EMOJI.fire} Smoke test on ${spec.label}`);
-  const before = await stable.balanceOf(signer.address);
-  info(`balance before mint`, before.toString());
-  const tx = await stable.mint(signer.address, 100n);
-  await tx.wait();
-  const after = await stable.balanceOf(signer.address);
-  ok(`minted 100`, `balance ${before} → ${after}`);
+
+  // Treasury minting is timelocked, so a smoke test cannot mint-and-assert in
+  // one pass. Queue the mint, report the eta, and verify the wiring that a
+  // deploy can actually get wrong: roles, bridge rate limit, pause state.
+  const bridgeAddr = rec.contracts.tokenMessenger;
+  info(`totalSupply`, (await stable.totalSupply()).toString());
+  info(`paused`, String(await stable.paused()));
+  info(`mintCap`, (await stable.mintCap()).toString());
+
+  if (bridgeAddr) {
+    const isBridge = await stable.bridges(bridgeAddr);
+    const available = await stable.bridgeMintAvailable(bridgeAddr);
+    if (isBridge) {
+      ok(`bridge wired`, `${bridgeAddr} may mint up to ${available} right now`);
+    } else {
+      fail(
+        `bridge NOT wired`,
+        `${bridgeAddr} lacks BRIDGE_ROLE — run PHASE=commit-wires once the timelock elapses`
+      );
+    }
+  }
+
+  const tx = await stable.queueMint(signer.address, 100n);
+  const receipt = await tx.wait();
+  const { actionId, eta } = readQueued(receipt, "MintQueued");
+  ok(
+    `queued treasury mint of 100`,
+    `actionId=${actionId} commit after ${new Date(eta * 1000).toISOString()} ` +
+      `via commitMint(${actionId}, ${signer.address}, 100)`
+  );
 }
 
 /* ============================ run ============================ */

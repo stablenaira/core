@@ -126,7 +126,7 @@ async function main() {
 
       header(`${EMOJI.unlock} Granting MINTER_ROLE`);
       await sleep(STEP_MS);
-      ok(`MINTER_ROLE granted`, `bridge ${rec.contracts.tokenMessenger} now allowed to mint+burnFrom on SNR`);
+      ok(`BRIDGE_ROLE granted`, `bridge ${rec.contracts.tokenMessenger} now allowed to mint (rate-limited) + burnFrom (allowance-gated) on SNR`);
       await sleep(STEP_MS);
       ok(`Saved addresses`, `ignition/deployments/${net}/addresses.json`);
       rocket(`Deployment on ${spec.label} complete.`);

@@ -69,7 +69,11 @@ const TOKEN_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
-  "function mint(address,uint256) returns (bool)",
+  "function bridgeBurnAvailable(address) view returns (uint256)",
+  "function queueMint(address,uint256) returns (uint256)",
+  "function commitMint(uint256,address,uint256)",
+  "function timelock() view returns (uint256)",
+  "event MintQueued(uint256 indexed actionId, address indexed to, uint256 amount)",
 ];
 
 const BRIDGE_ABI = [
@@ -134,22 +138,58 @@ async function main() {
   }
   ok(`Remote router on source (domain ${destSpec.domainId})`, route);
 
-  // 1. Mint AMOUNT to the deployer on source so we have something to burn.
-  header(`${EMOJI.fire} Step 1: mint ${AMOUNT} SNR on ${sourceSpec.label}`);
+  // 1. Ensure the deployer holds AMOUNT on source.
+  //
+  // Treasury minting is timelocked, so this cannot mint-and-continue in one
+  // pass. If the balance is short we queue the mint and stop with the exact
+  // command to resume — re-running after the eta picks up from a funded
+  // balance and proceeds straight to the burn.
+  header(`${EMOJI.fire} Step 1: fund ${AMOUNT} SNR on ${sourceSpec.label}`);
   const balBefore = (await tokenSrc.balanceOf(sourceSigner.address)) as bigint;
-  info(`pre-mint balance`, `${balBefore.toString()} SNR`);
-  let tx = await tokenSrc.mint(sourceSigner.address, AMOUNT);
-  let receipt = await tx.wait();
-  ok(`minted`, `tx=${receipt.hash}`);
-  const balAfterMint = (await tokenSrc.balanceOf(sourceSigner.address)) as bigint;
-  info(`post-mint balance`, `${balAfterMint.toString()} SNR`);
+  info(`balance`, `${balBefore.toString()} SNR`);
 
-  // 2. depositForBurn.
+  if (balBefore < AMOUNT) {
+    const qtx = await tokenSrc.queueMint(sourceSigner.address, AMOUNT);
+    const qreceipt = await qtx.wait();
+    const iface0 = new ethers.Interface(TOKEN_ABI);
+    let queuedId = "?";
+    for (const log of qreceipt.logs ?? []) {
+      try {
+        const p = iface0.parseLog(log as any);
+        if (p?.name === "MintQueued") queuedId = p.args.actionId.toString();
+      } catch {
+        /* not ours */
+      }
+    }
+    const tl = (await tokenSrc.timelock()) as bigint;
+    fail(
+      `Insufficient balance — queued a treasury mint of ${AMOUNT}.`,
+      `actionId=${queuedId}. After ~${tl}s run:  ` +
+        `commitMint(${queuedId}, ${sourceSigner.address}, ${AMOUNT})  then re-run this script.`
+    );
+    process.exitCode = 1;
+    return;
+  }
+  ok(`funded`, `${balBefore.toString()} SNR available`);
+
+  // 2. depositForBurn — one transaction, no approve step.
   header(`${EMOJI.warp} Step 2: depositForBurn → ${destSpec.label}`);
+  const bridgeAddr = sourceRec.contracts.tokenMessenger!;
+  const burnHeadroom = (await tokenSrc.bridgeBurnAvailable(bridgeAddr)) as bigint;
+  if (burnHeadroom < AMOUNT) {
+    fail(
+      `Bridge burn rate limit exhausted`,
+      `available=${burnHeadroom} needed=${AMOUNT} — it refills with time`
+    );
+    process.exitCode = 1;
+    return;
+  }
+  info(`bridge burn headroom`, burnHeadroom.toString());
+
   const recipient = ethers.zeroPadValue(ethers.getAddress(sourceSigner.address), 32);
   action(`depositForBurn`, `amount=${AMOUNT} dest=${destSpec.domainId} recipient=${recipient}`);
-  tx = await bridgeSrc.depositForBurn(AMOUNT, destSpec.domainId, recipient, sourceRec.contracts.stableNaira!);
-  receipt = await tx.wait();
+  let tx = await bridgeSrc.depositForBurn(AMOUNT, destSpec.domainId, recipient, sourceRec.contracts.stableNaira!);
+  let receipt = await tx.wait();
   const burnTxHash = receipt.hash;
   ok(`burned`, `tx=${burnTxHash}`);
 
