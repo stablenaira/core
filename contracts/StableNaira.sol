@@ -217,23 +217,14 @@ contract StableNaira is
         revokeRole(SEIZER_ROLE, account);
     }
 
-    // function mint(
-    //     address to,
-    //     uint256 amount
-    // ) external onlyRole(MINTER_ROLE) whenNotPaused returns (bool) {
-    //     if (to == address(0)) revert ZeroAddress();
-    //     uint256 cap = mintCap;
-    //     if (cap != 0 && totalSupply() + amount > cap) revert MintCapExceeded();
-    //     _mint(to, amount);
-    //     return true;
-    // }
+   
 
     /// @notice Queue a sensitive mint operation keyed by recipient and amount.
     /// @dev Caller must be admin; action can be committed after the configured timelock.
     function mint(
         address to,
         uint256 amount
-    ) external onlyRole(MINTER_ROLE) returns (uint256 actionId) {
+    ) external onlyRole(MINTER_ROLE) whenNotPaused returns (uint256 actionId) {
         if (to == address(0)) revert ZeroAddress();
         actionId = _queueAction(_hashMint(to, amount));
         emit MintQueued(actionId, to, amount);
@@ -265,7 +256,7 @@ contract StableNaira is
     function burnFrom(
         address account,
         uint256 amount
-    ) external onlyRole(MINTER_ROLE) whenNotPaused {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
         _burn(account, amount);
     }
 

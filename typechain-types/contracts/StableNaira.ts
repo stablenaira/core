@@ -89,7 +89,6 @@ export interface StableNairaInterface extends Interface {
       | "pendingAction"
       | "permit"
       | "proxiableUUID"
-      | "queueMint"
       | "queueUpgrade"
       | "redeemRequest"
       | "removeFreezer"
@@ -325,10 +324,6 @@ export interface StableNairaInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "queueMint",
-    values: [AddressLike, BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "queueUpgrade",
     values: [AddressLike, BytesLike]
   ): string;
@@ -528,7 +523,6 @@ export interface StableNairaInterface extends Interface {
     functionFragment: "proxiableUUID",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "queueMint", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "queueUpgrade",
     data: BytesLike
@@ -1157,7 +1151,7 @@ export interface StableNaira extends BaseContract {
 
   mint: TypedContractMethod<
     [to: AddressLike, amount: BigNumberish],
-    [boolean],
+    [bigint],
     "nonpayable"
   >;
 
@@ -1198,12 +1192,6 @@ export interface StableNaira extends BaseContract {
   >;
 
   proxiableUUID: TypedContractMethod<[], [string], "view">;
-
-  queueMint: TypedContractMethod<
-    [to: AddressLike, amount: BigNumberish],
-    [bigint],
-    "nonpayable"
-  >;
 
   queueUpgrade: TypedContractMethod<
     [newImpl: AddressLike, data: BytesLike],
@@ -1496,7 +1484,7 @@ export interface StableNaira extends BaseContract {
     nameOrSignature: "mint"
   ): TypedContractMethod<
     [to: AddressLike, amount: BigNumberish],
-    [boolean],
+    [bigint],
     "nonpayable"
   >;
   getFunction(
@@ -1548,13 +1536,6 @@ export interface StableNaira extends BaseContract {
   getFunction(
     nameOrSignature: "proxiableUUID"
   ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "queueMint"
-  ): TypedContractMethod<
-    [to: AddressLike, amount: BigNumberish],
-    [bigint],
-    "nonpayable"
-  >;
   getFunction(
     nameOrSignature: "queueUpgrade"
   ): TypedContractMethod<
