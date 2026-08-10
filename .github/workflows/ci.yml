@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same PR cancels the first — layout checks and the test
+# suite are deterministic, so an in-flight run on stale code has no value.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Hardhat 2.x does not support Node 23; 20 LTS is the supported line.
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Compile
+        run: npx hardhat compile --force
+
+      # Guards the UUPS proxies. A variable that moves slot, changes type, or
+      # disappears does not fail loudly on upgrade — it silently reinterprets
+      # live state. This is the only thing standing between a refactor and a
+      # corrupted mintCap, so it runs before the tests.
+      - name: Storage layout compatibility
+        run: npx ts-node scripts/check-storage-layout.ts
+
+      - name: Test
+        run: npx hardhat test

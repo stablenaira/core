@@ -17,10 +17,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+// Written for `bun`, but kept CommonJS-compatible so it typechecks under the
+// project's tsconfig (module: commonjs) and stays covered by `npm run ci`.
+// CommonJS supplies __dirname directly; Bun runs CJS fine.
 const ROOT       = path.resolve(__dirname, "..");
 const BLOCKSCOUT = "https://scan.assetchain.org/api/v2";
 
@@ -203,19 +203,26 @@ async function verifyOne(t: Target): Promise<boolean> {
   return await pollUntilVerified(t.address, t.label);
 }
 
-const filter = process.argv[2];
-const list = filter
-  ? TARGETS.filter(t => t.label === filter || t.contractName === filter)
-  : TARGETS;
-if (filter && list.length === 0) {
-  console.error(`No target matches "${filter}". Known labels:`);
-  for (const t of TARGETS) console.error(`  ${t.label}  (or ${t.contractName})`);
-  process.exit(1);
+async function main() {
+  const filter = process.argv[2];
+  const list = filter
+    ? TARGETS.filter(t => t.label === filter || t.contractName === filter)
+    : TARGETS;
+  if (filter && list.length === 0) {
+    console.error(`No target matches "${filter}". Known labels:`);
+    for (const t of TARGETS) console.error(`  ${t.label}  (or ${t.contractName})`);
+    process.exit(1);
+  }
+
+  let ok = 0, fail = 0;
+  for (const t of list) {
+    if (await verifyOne(t)) ok++; else fail++;
+  }
+  console.log(`\nSummary: ${ok} verified, ${fail} failed/pending  (network=assetchain mainnet)`);
+  process.exit(fail === 0 ? 0 : 1);
 }
 
-let ok = 0, fail = 0;
-for (const t of list) {
-  if (await verifyOne(t)) ok++; else fail++;
-}
-console.log(`\nSummary: ${ok} verified, ${fail} failed/pending  (network=assetchain mainnet)`);
-process.exit(fail === 0 ? 0 : 1);
+main().catch(e => {
+  console.error(e);
+  process.exit(1);
+});

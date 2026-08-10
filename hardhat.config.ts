@@ -342,6 +342,21 @@ const config: HardhatUserConfig = {
     version: "0.8.28",
     settings: {
       optimizer: { enabled: true, runs: 200 },
+      // `storageLayout` feeds scripts/check-storage-layout.ts, which guards the
+      // UUPS proxies against a layout change that would silently corrupt live
+      // state. Without it the compiler omits the section entirely.
+      outputSelection: {
+        "*": {
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata",
+            "storageLayout",
+          ],
+        },
+      },
     },
   },
 };

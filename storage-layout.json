@@ -1,0 +1,318 @@
+{
+  "StableNaira": [
+    {
+      "label": "timelock",
+      "slot": 0,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "minTimelock",
+      "slot": 1,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_nextActionId",
+      "slot": 2,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_actions",
+      "slot": 3,
+      "offset": 0,
+      "type": "mapping(uint256[32]=>struct TimelockedUpgradeable.PendingAction{actionHash@0+0:bytes32[32],eta@1+0:uint64[8]}[64])[32]",
+      "bytes": 32
+    },
+    {
+      "label": "__tlGap",
+      "slot": 4,
+      "offset": 0,
+      "type": "uint256[32][][1472]",
+      "bytes": 1472
+    },
+    {
+      "label": "mintCap",
+      "slot": 50,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "frozen",
+      "slot": 51,
+      "offset": 0,
+      "type": "mapping(address[20]=>bool[1])[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_authorizedImpl",
+      "slot": 52,
+      "offset": 0,
+      "type": "address[20]",
+      "bytes": 20
+    },
+    {
+      "label": "_bridgeLimits",
+      "slot": 53,
+      "offset": 0,
+      "type": "mapping(address[20]=>struct StableNaira.BridgeLimit{capacity@0+0:uint96[12],period@0+12:uint48[6],lastMintRefill@0+18:uint48,lastBurnRefill@0+24:uint48,mintRemaining@1+0:uint128[16],burnRemaining@1+16:uint128}[64])[32]",
+      "bytes": 32
+    },
+    {
+      "label": "__gap",
+      "slot": 54,
+      "offset": 0,
+      "type": "uint256[32][][1536]",
+      "bytes": 1536
+    }
+  ],
+  "MessageTransmitter": [
+    {
+      "label": "timelock",
+      "slot": 0,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "minTimelock",
+      "slot": 1,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_nextActionId",
+      "slot": 2,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_actions",
+      "slot": 3,
+      "offset": 0,
+      "type": "mapping(uint256[32]=>struct TimelockedUpgradeable.PendingAction{actionHash@0+0:bytes32[32],eta@1+0:uint64[8]}[64])[32]",
+      "bytes": 32
+    },
+    {
+      "label": "__tlGap",
+      "slot": 4,
+      "offset": 0,
+      "type": "uint256[32][][1472]",
+      "bytes": 1472
+    },
+    {
+      "label": "localDomain",
+      "slot": 50,
+      "offset": 0,
+      "type": "uint32[4]",
+      "bytes": 4
+    },
+    {
+      "label": "_nextNonce",
+      "slot": 50,
+      "offset": 4,
+      "type": "uint64[8]",
+      "bytes": 8
+    },
+    {
+      "label": "signatureVerifier",
+      "slot": 50,
+      "offset": 12,
+      "type": "address[20]",
+      "bytes": 20
+    },
+    {
+      "label": "maxMessageBodySize",
+      "slot": 51,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_usedNonces",
+      "slot": 52,
+      "offset": 0,
+      "type": "mapping(uint32[4]=>mapping(uint64[8]=>bool[1])[32])[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_authorizedImpl",
+      "slot": 53,
+      "offset": 0,
+      "type": "address[20]",
+      "bytes": 20
+    },
+    {
+      "label": "__gap",
+      "slot": 54,
+      "offset": 0,
+      "type": "uint256[32][][1472]",
+      "bytes": 1472
+    }
+  ],
+  "TokenMessenger": [
+    {
+      "label": "timelock",
+      "slot": 0,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "minTimelock",
+      "slot": 1,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_nextActionId",
+      "slot": 2,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_actions",
+      "slot": 3,
+      "offset": 0,
+      "type": "mapping(uint256[32]=>struct TimelockedUpgradeable.PendingAction{actionHash@0+0:bytes32[32],eta@1+0:uint64[8]}[64])[32]",
+      "bytes": 32
+    },
+    {
+      "label": "__tlGap",
+      "slot": 4,
+      "offset": 0,
+      "type": "uint256[32][][1472]",
+      "bytes": 1472
+    },
+    {
+      "label": "messageTransmitter",
+      "slot": 50,
+      "offset": 0,
+      "type": "address[20]",
+      "bytes": 20
+    },
+    {
+      "label": "localToken",
+      "slot": 51,
+      "offset": 0,
+      "type": "address[20]",
+      "bytes": 20
+    },
+    {
+      "label": "feeBps",
+      "slot": 52,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "feeRecipient",
+      "slot": 53,
+      "offset": 0,
+      "type": "address[20]",
+      "bytes": 20
+    },
+    {
+      "label": "_remoteRouters",
+      "slot": 54,
+      "offset": 0,
+      "type": "mapping(uint32[4]=>bytes32[32])[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_authorizedImpl",
+      "slot": 55,
+      "offset": 0,
+      "type": "address[20]",
+      "bytes": 20
+    },
+    {
+      "label": "__gap",
+      "slot": 56,
+      "offset": 0,
+      "type": "uint256[32][][1408]",
+      "bytes": 1408
+    }
+  ],
+  "ValidatorRegistry": [
+    {
+      "label": "timelock",
+      "slot": 0,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "minTimelock",
+      "slot": 1,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_nextActionId",
+      "slot": 2,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_actions",
+      "slot": 3,
+      "offset": 0,
+      "type": "mapping(uint256[32]=>struct TimelockedUpgradeable.PendingAction{actionHash@0+0:bytes32[32],eta@1+0:uint64[8]}[64])[32]",
+      "bytes": 32
+    },
+    {
+      "label": "__tlGap",
+      "slot": 4,
+      "offset": 0,
+      "type": "uint256[32][][1472]",
+      "bytes": 1472
+    },
+    {
+      "label": "_validators",
+      "slot": 50,
+      "offset": 0,
+      "type": "struct EnumerableSet.AddressSet{_inner@0+0:struct EnumerableSet.Set{_values@0+0:bytes32[32][][32],_positions@1+0:mapping(bytes32=>uint256[32])[32]}[64]}[64]",
+      "bytes": 64
+    },
+    {
+      "label": "threshold",
+      "slot": 52,
+      "offset": 0,
+      "type": "uint256[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_changes",
+      "slot": 53,
+      "offset": 0,
+      "type": "mapping(uint256[32]=>struct ValidatorRegistry.ValidatorChange{kind@0+0:enum IValidatorRegistry.ChangeKind[1],target@0+1:address[20],replacement@1+0:address,newThreshold@2+0:uint256}[96])[32]",
+      "bytes": 32
+    },
+    {
+      "label": "_authorizedImpl",
+      "slot": 54,
+      "offset": 0,
+      "type": "address[20]",
+      "bytes": 20
+    },
+    {
+      "label": "__gap",
+      "slot": 55,
+      "offset": 0,
+      "type": "uint256[32][][1472]",
+      "bytes": 1472
+    }
+  ]
+}
