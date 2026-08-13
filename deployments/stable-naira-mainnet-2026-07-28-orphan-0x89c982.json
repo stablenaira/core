@@ -1,0 +1,13 @@
+{
+  "network": "mainnet",
+  "tokenName": "StableNaira",
+  "tokenSymbol": "SNR",
+  "initialAdmin": "0x6119Fe6Ba025b55d9A65a84Ab439C2367F02c64F",
+  "commitSha": "fe1479101c3448be24c6d211071391015e2f0ac3",
+  "implementation": "0xEf04ADF64516642efe64Eb5eaADb4299B563C9DE",
+  "proxy": "0x89c98228A56F6E9D64e4660c39096a69e4D8b964",
+  "deployer": "0x6119Fe6Ba025b55d9A65a84Ab439C2367F02c64F",
+  "onChainName": "StableNaira",
+  "onChainSymbol": "SNR",
+  "initialAdminRoleGranted": true
+}

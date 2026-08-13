@@ -31,13 +31,26 @@ GRAY=$'\033[90m'
 BOLD=$'\033[1m'
 RESET=$'\033[0m'
 
+# The chain list comes from the template's deploymentGroups rather than being
+# hardcoded here. The queue/commit phases below already resolve the group that
+# way (PHASE=queue-all / commit-all read GROUP), so a hardcoded list here would
+# deploy a subset and then try to wire chains that were never deployed.
+TEMPLATE="ignition/parameters/deploy-stable-naira-stack.template.json"
+read -r -a NETWORKS <<< "$(
+  node -e '
+    const g = process.argv[1];
+    const t = require("./" + process.argv[2]);
+    const n = t.deploymentGroups[g];
+    if (!n) { console.error("unknown group " + g); process.exit(1); }
+    process.stdout.write(n.join(" "));
+  ' "$GROUP" "$TEMPLATE"
+)" || { echo "${RED}Could not resolve deployment group '${GROUP}' from ${TEMPLATE}${RESET}"; exit 1; }
+
 case "$GROUP" in
   testnet)
-    NETWORKS=(testnet sepolia baseSepolia)
     BSC_NETWORK="testnet"
     ;;
   mainnet)
-    NETWORKS=(mainnet ethereum base)
     BSC_NETWORK="mainnet"
     if [[ "${I_REALLY_MEAN_MAINNET:-}" != "yes" ]]; then
       echo "${RED}${BOLD}Refusing to run mainnet ceremony without I_REALLY_MEAN_MAINNET=yes${RESET}"

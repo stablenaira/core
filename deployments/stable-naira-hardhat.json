@@ -1,0 +1,13 @@
+{
+  "network": "hardhat",
+  "tokenName": "StableNaira",
+  "tokenSymbol": "SNR",
+  "initialAdmin": "0xA72B530De83510B96eAab4fc5147Bb7a127934De",
+  "commitSha": "ee96181746617d73d85086cbc2bb66ce8a0aba4f-dirty",
+  "implementation": "0x530228e1aBFAb0152953D92D3b726b895Fa339be",
+  "proxy": "0xf51a1f1f211FE91ed0D269754c0D66FBE38691Ed",
+  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "onChainName": "StableNaira",
+  "onChainSymbol": "SNR",
+  "initialAdminRoleGranted": true
+}

@@ -40,6 +40,64 @@ async function verifyOnExplorer(
   });
 }
 
+/**
+ * Tell the explorer the address is a proxy and which implementation it points
+ * at. `hardhat verify` only submits source; it never sets the proxy flag.
+ * Best-effort — a failure here costs the proxy tabs, not the deployment.
+ */
+async function registerProxyOnExplorer(
+  proxyAddress: string,
+  implementationAddress: string,
+) {
+  if (hre.network.name === "hardhat" || hre.network.name === "localhost") return;
+
+  const apiKey = process.env.ETHERSCAN_API_KEY || process.env.BSCSCAN_API_KEY;
+  if (!apiKey) {
+    console.log("No explorer API key found; skipping proxy registration.");
+    return;
+  }
+
+  const chainId = Number(
+    (await hre.ethers.provider.getNetwork()).chainId,
+  );
+  const endpoint = `https://api.etherscan.io/v2/api?chainid=${chainId}`;
+
+  try {
+    const submit = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        module: "contract",
+        action: "verifyproxycontract",
+        address: proxyAddress,
+        expectedimplementation: implementationAddress,
+        apikey: apiKey,
+      }),
+    });
+    const submitted: any = await submit.json();
+    if (submitted.status !== "1") {
+      console.warn(`Proxy registration not accepted: ${submitted.result}`);
+      return;
+    }
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const check = await fetch(
+        `${endpoint}&module=contract&action=checkproxyverification` +
+          `&guid=${submitted.result}&apikey=${apiKey}`,
+      );
+      const status: any = await check.json();
+      if (status.status === "1") {
+        console.log(`Proxy registered on explorer: ${status.result}`);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    console.warn("Proxy registration did not confirm in time.");
+  } catch (error) {
+    console.warn("Proxy registration failed:", error);
+  }
+}
+
 async function main() {
   if (
     hre.network.name !== "hardhat" &&
@@ -122,10 +180,16 @@ async function main() {
   }
 
   const token = await ethers.getContractAt("StableNaira", proxyAddress);
-  const initData = ethers.AbiCoder.defaultAbiCoder().encode(
-    ["string", "string", "address"],
-    [tokenName, tokenSymbol, initialAdmin],
-  );
+  // Must byte-match the ERC1967Proxy `_data` constructor argument the factory
+  // actually passed, which is `abi.encodeCall(StableNaira.initialize, ...)` —
+  // i.e. the 4-byte `initialize` selector followed by the encoded arguments.
+  // A bare abi.encode of the arguments omits the selector, and explorer proxy
+  // verification then fails on a constructor-arguments mismatch.
+  const initData = token.interface.encodeFunctionData("initialize", [
+    tokenName,
+    tokenSymbol,
+    initialAdmin,
+  ]);
   const [nameOnChain, symbolOnChain] = await Promise.all([
     token.name(),
     token.symbol(),
@@ -155,20 +219,35 @@ async function main() {
   );
   fs.writeFileSync(outputPath, JSON.stringify(deploymentResult, null, 2));
 
+  // Each target is verified in its own try/catch. A single shared block let a
+  // failure on the implementation skip the proxy entirely — and `hardhat
+  // verify` also calls Sourcify, which can fail (503 during its v1 brownout)
+  // *after* the explorer already succeeded. That threw, and the proxy was
+  // never submitted.
   try {
     await verifyOnExplorer(
       implementationAddress,
       [],
       "contracts/StableNaira.sol:StableNaira",
     );
+  } catch (error) {
+    console.warn("Implementation verification failed:", error);
+  }
+
+  try {
     await verifyOnExplorer(
       proxyAddress,
       buildProxyVerificationArgs(implementationAddress, initData),
       "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy",
     );
   } catch (error) {
-    console.warn("Explorer verification failed:", error);
+    console.warn("Proxy verification failed:", error);
   }
+
+  // Source-verifying the proxy is not enough: the explorer also has to be told
+  // it *is* a proxy, or the Read/Write-as-Proxy tabs never appear and callers
+  // see the bare ERC1967Proxy ABI instead of the token's.
+  await registerProxyOnExplorer(proxyAddress, implementationAddress);
 
   console.log("Deployment complete.");
   console.log(`Implementation: ${implementationAddress}`);

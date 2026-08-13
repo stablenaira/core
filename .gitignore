@@ -21,5 +21,8 @@
 
 .idea
 .env
-docs
-deployments
+
+# NOTE: `docs` and `deployments` were previously ignored. Both are load-bearing
+# and belong in version control: README links into docs/, and deployments/ is
+# the only record of what deploy-token.ts put on chain. Address books under
+# ignition/deployments/ have always been tracked.
