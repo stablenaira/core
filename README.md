@@ -180,6 +180,65 @@ compile → layout check → tests on every push and PR.
 
 ## Deployment
 
+### Current state: BSC is token-only — the bridge is not deployed
+
+BNB Smart Chain runs **only the token**. The bridge stack has not been deployed
+against it, so **cross-chain transfers do not work on any chain.**
+
+| | |
+|---|---|
+| Token (proxy) | `0x1638CFb26F17F81fb20295221A5075Aec363257F` |
+| Implementation | `0x87d7cf767Ba7496820bfB5A475382b017FA7B29C` — `VERSION 2.0` |
+| Admin | Safe `0xA72B530De83510B96eAab4fc5147Bb7a127934De`, holding every role |
+| `BRIDGE_ROLE` | **no members** |
+| `mintCap` | `0` — no supply ceiling |
+
+Deployed 2026-08-13 with `npm run deploy:token:deterministic:mainnet`, which
+deploys the token alone. `BRIDGE_ROLE` is empty, so nothing can mint except the
+Safe via the timelocked `queueMint` → `commitMint` path.
+
+Earlier stacks exist on chain from previous deployments. **They are not part of
+this deployment** — different token, pre-audit code, keys outside the Safe. Do
+not wire anything to them.
+
+### What multichain requires
+
+Per chain, all four of these must be deployed and owned by the Safe:
+
+| Contract | Why it is required |
+|---|---|
+| `ValidatorRegistry` | The signer set and threshold. Nothing can attest a cross-chain message without it |
+| `MultisigVerifier` | Checks quorum signatures. Its registry is fixed in the constructor, so a new registry always forces a new verifier |
+| `MessageTransmitter` | Message envelope, nonces, replay protection |
+| `TokenMessenger` | Burns on the source chain, mints on the destination. This is the contract that needs `BRIDGE_ROLE` |
+
+Then, on the token, the Safe must run `queueAddBridge` → wait ≥ 1 hour →
+`commitAddBridge` to grant the local `TokenMessenger` its `BRIDGE_ROLE` and rate
+limit. **Until that commit lands the bridge cannot mint or burn**, so a stack
+that is fully deployed but not yet granted is still non-functional.
+
+Cross-chain also needs at least two chains wired to each other: each side
+registers the other's `TokenMessenger` as the remote router for its domain
+(`PHASE=queue-wires` → `PHASE=commit-wires`).
+
+`PHASE=deploy` deploys a token unless the network spec pins one. Set
+`tokenAddress` on the network in
+[the deploy template](ignition/parameters/deploy-stable-naira-stack.template.json)
+to bind the bridge to a token that already exists — it is set for `mainnet`, so
+BSC will reuse the token above rather than deploy a duplicate.
+
+### Unresolved before any bridge deployment
+
+- **`validatorRegistry.validators` / `threshold`** — still the old operator key
+  at 1-of-1. Validators must be EOAs (the verifier uses `ecrecover`, so the Safe
+  cannot be one), and the contract enforces a strict majority,
+  `2 × threshold > count`.
+- **`oracle.reporters` / `quorum`** — same placeholder, also EOAs.
+- **`token.mintCap`** — `"0"` means uncapped, and `deploy.ts` skips the cap step
+  entirely when it is `"0"`.
+
+---
+
 Deploying is phased, driven by `PHASE=` against `scripts/deploy.ts`:
 
 ```bash
@@ -195,9 +254,11 @@ npm run verify:testnet          # PHASE=verify      explorer verification
 or burn until that commit lands.** Wire the routers first, then commit
 everything together.
 
-Size the rate limit deliberately in the deploy template — `bridgeCapacity` /
-`bridgePeriodSeconds` default to 10,000,000.00 NGN per rolling day. Set it to
-plausible peak daily cross-chain volume, **not** to total supply.
+Size the rate limit deliberately in the deploy template. `bridgeCapacity` /
+`bridgePeriodSeconds` are pinned there at 10,000,000.00 NGN per rolling day —
+stated explicitly rather than inherited from the script's fallback, so the value
+shows up in review. Set it to plausible peak daily cross-chain volume, **not** to
+total supply.
 
 Supported networks are configured in [hardhat.config.ts](hardhat.config.ts):
 BNB Smart Chain, Ethereum, Base, Arbitrum, Polygon, Avalanche, Optimism and

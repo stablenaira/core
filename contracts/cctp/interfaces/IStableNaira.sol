@@ -51,9 +51,12 @@ interface IStableNaira {
     /// @notice Queues granting `BRIDGE_ROLE` to `bridge` with a rate limit of
     ///         `capacity` tokens per `period` seconds. Caller must hold
     ///         `DEFAULT_ADMIN_ROLE`; commit after the timelock elapses.
+    /// @dev `capacity` is `uint96` to match `StableNaira` exactly. A `uint128`
+    ///      here would change the function selector and every call through this
+    ///      interface would revert on a non-existent function.
     function queueAddBridge(
         address bridge,
-        uint128 capacity,
+        uint96 capacity,
         uint48 period
     ) external returns (uint256 actionId);
 
@@ -61,7 +64,7 @@ interface IStableNaira {
     function commitAddBridge(
         uint256 actionId,
         address bridge,
-        uint128 capacity,
+        uint96 capacity,
         uint48 period
     ) external;
 

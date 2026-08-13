@@ -66,7 +66,7 @@ describe("ValidatorRegistry", () => {
   });
 
   describe("queue / commit: add validator", () => {
-    it("owner queues, anyone commits after eta", async () => {
+    it("owner queues and commits after eta", async () => {
       const { validatorRegistry, owner, v4 } = await loadFixture(fixture);
       const tx = await validatorRegistry.connect(owner).queueAddValidator(v4.address);
       const receipt = await tx.wait();
@@ -90,6 +90,42 @@ describe("ValidatorRegistry", () => {
       const { validatorRegistry, alice, v4 } = await loadFixture(fixture);
       await expect(
         validatorRegistry.connect(alice).queueAddValidator(v4.address)
+      ).to.be.revertedWithCustomError(validatorRegistry, "OwnableUnauthorizedAccount");
+    });
+
+    // A permissionless commit would let anyone force a queued change through at
+    // `eta`, closing the owner's cancellation window at the eta rather than at
+    // execution.
+    it("non-owner cannot commit, even after eta", async () => {
+      const { validatorRegistry, owner, alice, v4 } = await loadFixture(fixture);
+      const receipt = await (
+        await validatorRegistry.connect(owner).queueAddValidator(v4.address)
+      ).wait();
+      const actionId = await lastQueuedActionId(receipt);
+
+      await time.increase(3600 + 1);
+
+      await expect(
+        validatorRegistry.connect(alice).commitValidatorChange(actionId)
+      ).to.be.revertedWithCustomError(validatorRegistry, "OwnableUnauthorizedAccount");
+
+      // Still cancellable by the owner, which is the point of gating the commit.
+      await validatorRegistry.connect(owner).cancel(actionId);
+      expect(await validatorRegistry.isValidator(v4.address)).to.equal(false);
+    });
+
+    it("non-owner cannot commit an upgrade", async () => {
+      const { validatorRegistry, owner, alice } = await loadFixture(fixture);
+      const newImpl = await (await ethers.getContractFactory("ValidatorRegistry")).deploy();
+      const receipt = await (
+        await validatorRegistry.connect(owner).queueUpgrade(await newImpl.getAddress(), "0x")
+      ).wait();
+      const actionId = await lastQueuedActionId(receipt);
+
+      await time.increase(3600 + 1);
+
+      await expect(
+        validatorRegistry.connect(alice).commitUpgrade(actionId, await newImpl.getAddress(), "0x")
       ).to.be.revertedWithCustomError(validatorRegistry, "OwnableUnauthorizedAccount");
     });
 

@@ -208,21 +208,69 @@ async function phaseDeploy(networkName: string, spec: any, template: any) {
     }
   }
 
-  /* StableNaira (proxy + impl + factory) */
-  header(`${EMOJI.rocket} StableNaira (UUPS proxy + impl + factory)`);
-  const Factory = await ethers.getContractFactory("StableNairaUUPSDeployer");
-  const factory = await deployContract<any>(Factory, [], "StableNairaUUPSDeployer");
-  ok(`StableNairaUUPSDeployer deployed`, await factory.getAddress());
+  /* StableNaira — reuse an already-deployed token, or deploy a fresh one.
+   *
+   * Set `tokenAddress` on the network (or `common.token.address` for every
+   * chain) to bind the bridge to a token that already exists. Without it this
+   * phase always deploys a NEW token, which silently orphans one deployed
+   * earlier by `deploy-token.ts` and leaves a duplicate SNR on the chain. */
+  const ERC1967_IMPL_SLOT =
+    "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+  const existingToken: string | undefined =
+    spec.tokenAddress ?? template.common.token.address;
 
-  const tokenReceipt = await sendTx(
-    async () => factory.deploy(template.common.token.name, template.common.token.symbol, admin, await txOverrides()),
-    "StableNaira factory.deploy()"
-  );
-  const ev = tokenReceipt!.logs.find((l: any) => l.fragment?.name === "Deployed") as any;
-  const tokenProxy = ev.args.proxy as string;
-  const tokenImpl = ev.args.implementation as string;
-  ok(`StableNaira impl deployed`, tokenImpl);
-  ok(`StableNaira proxy deployed (initialized atomically)`, tokenProxy);
+  let tokenProxy: string;
+  let tokenImpl: string;
+  let tokenFactoryAddress: string | undefined;
+
+  if (existingToken) {
+    header(`${EMOJI.rocket} StableNaira (reusing existing token)`);
+    if ((await ethers.provider.getCode(existingToken)) === "0x") {
+      fail(`No contract at configured token address`, existingToken);
+    }
+    tokenProxy = ethers.getAddress(existingToken);
+    tokenImpl = ethers.getAddress(
+      "0x" + (await ethers.provider.getStorage(tokenProxy, ERC1967_IMPL_SLOT)).slice(26),
+    );
+
+    const existing = await ethers.getContractAt("StableNaira", tokenProxy);
+    const [onName, onSymbol] = await Promise.all([existing.name(), existing.symbol()]);
+    if (onName !== template.common.token.name || onSymbol !== template.common.token.symbol) {
+      fail(
+        `Token at ${tokenProxy} is ${onName}/${onSymbol}, template expects ` +
+          `${template.common.token.name}/${template.common.token.symbol}`,
+      );
+    }
+    // The bridge grant later in this phase is admin-gated, so the configured
+    // admin must already hold DEFAULT_ADMIN_ROLE on the token being reused.
+    const adminRole = await existing.DEFAULT_ADMIN_ROLE();
+    if (!(await existing.hasRole(adminRole, admin))) {
+      fail(
+        `Configured admin ${admin} does not hold DEFAULT_ADMIN_ROLE on ${tokenProxy} — ` +
+          `queueAddBridge would revert`,
+      );
+    }
+    ok(`StableNaira proxy (existing)`, tokenProxy);
+    ok(`StableNaira impl (from ERC-1967 slot)`, tokenImpl);
+    info(`Token`, `${onName}/${onSymbol}, admin verified as ${admin}`);
+  } else {
+    header(`${EMOJI.rocket} StableNaira (UUPS proxy + impl + factory)`);
+    const Factory = await ethers.getContractFactory("StableNairaUUPSDeployer");
+    const factory = await deployContract<any>(Factory, [], "StableNairaUUPSDeployer");
+    tokenFactoryAddress = await factory.getAddress();
+    ok(`StableNairaUUPSDeployer deployed`, tokenFactoryAddress);
+
+    const tokenReceipt = await sendTx(
+      async () => factory.deploy(template.common.token.name, template.common.token.symbol, admin, await txOverrides()),
+      "StableNaira factory.deploy()"
+    );
+    const ev = tokenReceipt!.logs.find((l: any) => l.fragment?.name === "Deployed") as any;
+    tokenProxy = ev.args.proxy as string;
+    tokenImpl = ev.args.implementation as string;
+    ok(`StableNaira impl deployed`, tokenImpl);
+    ok(`StableNaira proxy deployed (initialized atomically)`, tokenProxy);
+  }
+
   const stableNaira = await ethers.getContractAt("StableNaira", tokenProxy);
 
   /* ValidatorRegistry */
@@ -356,7 +404,8 @@ async function phaseDeploy(networkName: string, spec: any, template: any) {
     contracts: {
       stableNaira: tokenProxy,
       stableNairaImpl: tokenImpl,
-      stableNairaDeployer: await factory.getAddress(),
+      // undefined when the token was reused rather than deployed by this phase.
+      stableNairaDeployer: tokenFactoryAddress,
       validatorRegistry: await validatorRegistry.getAddress(),
       validatorRegistryImpl: await vrImpl.getAddress(),
       verifier: await verifier.getAddress(),
@@ -417,6 +466,8 @@ async function phaseVerify(networkName: string) {
   }
 
   const tasks: { name: string; address?: string; constructorArgs: any[] }[] = [
+    // `stableNairaDeployer` is null when the token was reused rather than
+    // deployed here; the filter below drops entries without an address.
     { name: "StableNairaUUPSDeployer (factory)", address: rec.contracts.stableNairaDeployer, constructorArgs: [] },
     { name: "StableNaira (impl)", address: rec.contracts.stableNairaImpl, constructorArgs: [] },
     { name: "ValidatorRegistry (impl)", address: rec.contracts.validatorRegistryImpl, constructorArgs: [] },

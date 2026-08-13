@@ -222,8 +222,15 @@ contract MessageTransmitter is
         emit VerifierChangeQueued(actionId, newVerifier);
     }
 
-    /// @notice Permissionless commit after eta. Caller must pass identical args.
-    function commitSetSignatureVerifier(uint256 actionId, address newVerifier) external {
+    /// @notice Commit a queued verifier swap. Caller must pass identical args.
+    /// @dev Owner-gated for the same reason the queue side is: an
+    ///      unauthenticated commit lets anyone front-run the owner's
+    ///      `cancelAction`, closing the cancellation window at `eta` rather
+    ///      than at execution.
+    function commitSetSignatureVerifier(
+        uint256 actionId,
+        address newVerifier
+    ) external onlyOwner {
         _consumeAction(actionId, _hashSetVerifier(newVerifier));
         emit SignatureVerifierUpdated(signatureVerifier, newVerifier);
         signatureVerifier = newVerifier;
@@ -241,11 +248,17 @@ contract MessageTransmitter is
         emit UpgradeQueued(actionId, newImpl);
     }
 
-    function commitUpgrade(uint256 actionId, address newImpl, bytes calldata data) external {
+    function commitUpgrade(
+        uint256 actionId,
+        address newImpl,
+        bytes calldata data
+    ) external onlyOwner {
         _consumeAction(actionId, _hashUpgrade(newImpl, data));
         _authorizedImpl = newImpl;
+        // `_authorizeUpgrade` consumes and clears the flag before `data` is
+        // delegatecalled into the new implementation, so the clear can never
+        // overwrite V2 state that lands on this storage slot.
         upgradeToAndCall(newImpl, data);
-        delete _authorizedImpl;
         emit UpgradeCommitted(actionId, newImpl);
     }
 
@@ -303,9 +316,12 @@ contract MessageTransmitter is
 
     /* ----------------------------- upgrade ----------------------------- */
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal view override {
+    /// @dev Authorized only when invoked indirectly via `commitUpgrade`. The
+    ///      flag is cleared here — before `upgradeToAndCall` delegatecalls the
+    ///      new implementation's initializer — so the clear can never zero out
+    ///      V2 state that occupies this storage slot.
+    function _authorizeUpgrade(address newImplementation) internal override {
         if (newImplementation != _authorizedImpl) revert UpgradeNotAuthorized();
+        delete _authorizedImpl;
     }
 }

@@ -177,9 +177,9 @@ const _abi = [
         type: "address",
       },
       {
-        internalType: "uint128",
+        internalType: "uint96",
         name: "capacity",
-        type: "uint128",
+        type: "uint96",
       },
       {
         internalType: "uint48",
@@ -282,9 +282,9 @@ const _abi = [
         type: "address",
       },
       {
-        internalType: "uint128",
+        internalType: "uint96",
         name: "capacity",
-        type: "uint128",
+        type: "uint96",
       },
       {
         internalType: "uint48",

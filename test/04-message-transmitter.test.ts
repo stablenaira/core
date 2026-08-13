@@ -293,6 +293,29 @@ describe("MessageTransmitter", () => {
         messageTransmitter.connect(alice).queueSetSignatureVerifier(alice.address)
       ).to.be.revertedWithCustomError(messageTransmitter, "OwnableUnauthorizedAccount");
     });
+
+    // A permissionless commit would let anyone force the queued verifier swap
+    // through at `eta`, closing the owner's cancellation window early.
+    it("non-owner cannot commit, even after eta", async () => {
+      const { messageTransmitter, owner, alice } = await loadFixture(fixture);
+      const MockVerifier = await ethers.getContractFactory("MockSignatureVerifier");
+      const newAddr = await (await MockVerifier.deploy()).getAddress();
+
+      const receipt = await (
+        await messageTransmitter.connect(owner).queueSetSignatureVerifier(newAddr)
+      ).wait();
+      const evt = receipt!.logs.find((l: any) => l.fragment?.name === "VerifierChangeQueued") as any;
+      const actionId = evt.args.actionId as bigint;
+
+      await time.increase(3600 + 1);
+
+      await expect(
+        messageTransmitter.connect(alice).commitSetSignatureVerifier(actionId, newAddr)
+      ).to.be.revertedWithCustomError(messageTransmitter, "OwnableUnauthorizedAccount");
+
+      await messageTransmitter.connect(owner).cancel(actionId);
+      expect(await messageTransmitter.signatureVerifier()).to.not.equal(newAddr);
+    });
   });
 
   describe("setMaxMessageBodySize", () => {
@@ -318,6 +341,23 @@ describe("MessageTransmitter", () => {
       const actionId = evt.args.actionId as bigint;
       await time.increase(3600 + 1);
       await messageTransmitter.commitUpgrade(actionId, newAddr, "0x");
+    });
+
+    it("non-owner cannot commit an upgrade", async () => {
+      const { messageTransmitter, owner, alice } = await loadFixture(fixture);
+      const Impl = await ethers.getContractFactory("MessageTransmitter");
+      const newAddr = await (await Impl.deploy()).getAddress();
+      const receipt = await (
+        await messageTransmitter.connect(owner).queueUpgrade(newAddr, "0x")
+      ).wait();
+      const evt = receipt!.logs.find((l: any) => l.fragment?.name === "UpgradeQueued") as any;
+      const actionId = evt.args.actionId as bigint;
+
+      await time.increase(3600 + 1);
+
+      await expect(
+        messageTransmitter.connect(alice).commitUpgrade(actionId, newAddr, "0x")
+      ).to.be.revertedWithCustomError(messageTransmitter, "OwnableUnauthorizedAccount");
     });
   });
 });

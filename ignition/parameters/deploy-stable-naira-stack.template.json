@@ -5,7 +5,11 @@
     "token": {
       "name": "StableNaira",
       "symbol": "SNR",
-      "mintCap": "0"
+      "_mintCap_note": "Base units, 2 decimals. '0' means NO SUPPLY CEILING and makes deploy.ts skip the queueSetMintCap step entirely. Set a real figure before mainnet.",
+      "mintCap": "0",
+      "_bridgeLimit_note": "Per-bridge refilling allowance, stated explicitly rather than inherited from deploy.ts defaults. Size to plausible PEAK volume per period, not to total supply — this is the only bound on what a compromised bridge can mint or burn, because burnFrom needs no allowance.",
+      "bridgeCapacity": "1000000000",
+      "bridgePeriodSeconds": 86400
     },
     "validatorRegistry": {
       "validators": [
@@ -33,8 +37,8 @@
       ],
       "quorum": 1
     },
-    "owner": "0x2503Cba0edfEe3F790D14bA141b92B11816EC987",
-    "admin": "0x2503Cba0edfEe3F790D14bA141b92B11816EC987"
+    "owner": "0xA72B530De83510B96eAab4fc5147Bb7a127934De",
+    "admin": "0xA72B530De83510B96eAab4fc5147Bb7a127934De"
   },
   "networks": {
     "localhost": {
@@ -115,6 +119,8 @@
       "domainId": 56,
       "deployOracle": true,
       "explorerUrl": "https://bscscan.com",
+      "_tokenAddress_note": "Deployed 2026-08-13 by deploy:token:deterministic:mainnet, admin = Safe 0xA72B530D. Set here so PHASE=deploy binds the bridge to it instead of deploying a duplicate SNR.",
+      "tokenAddress": "0x1638CFb26F17F81fb20295221A5075Aec363257F",
       "peers": ["ethereum", "base", "assetchain", "polygon", "avalanche", "arbitrum", "optimism"]
     },
     "ethereum": {

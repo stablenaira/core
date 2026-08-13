@@ -8,6 +8,13 @@ export interface NetworkSpec {
   deployOracle: boolean;
   explorerUrl: string;
   peers: string[];
+  /**
+   * Bind the bridge to a StableNaira that already exists on this chain instead
+   * of deploying a new one. Without it `PHASE=deploy` always deploys a fresh
+   * token, which orphans one deployed earlier by `deploy-token.ts` and leaves a
+   * duplicate SNR on the chain. Falls back to `common.token.address`.
+   */
+  tokenAddress?: string;
 }
 
 export interface CommonParams {
@@ -23,6 +30,8 @@ export interface CommonParams {
      */
     bridgeCapacity?: string;
     bridgePeriodSeconds?: number;
+    /** Chain-agnostic fallback for `NetworkSpec.tokenAddress`. */
+    address?: string;
   };
   validatorRegistry: {
     validators: string[];

@@ -136,10 +136,14 @@ contract ValidatorRegistry is
 
     /* ------------------------ commit: validator changes ----------------------- */
 
-    /// @notice Permissionless commit of a previously-queued validator change.
+    /// @notice Commit a previously-queued validator change.
+    /// @dev Owner-gated for the same reason the queue side is: an
+    ///      unauthenticated commit lets anyone front-run the owner's
+    ///      `cancelAction`, closing the cancellation window at `eta` rather
+    ///      than at execution.
     function commitValidatorChange(
         uint256 actionId
-    ) external {
+    ) external onlyOwner {
         ValidatorChange memory c = _changes[actionId];
         // Verify timing & hash match; mixin reverts on missing/early/mismatch.
         _consumeAction(actionId, _hashValidatorChange(c));
@@ -172,13 +176,18 @@ contract ValidatorRegistry is
         emit UpgradeQueued(actionId, newImpl);
     }
 
-    /// @notice Commit a previously queued upgrade. Permissionless after `eta`.
-    function commitUpgrade(uint256 actionId, address newImpl, bytes calldata data) external {
+    /// @notice Commit a previously queued upgrade.
+    function commitUpgrade(
+        uint256 actionId,
+        address newImpl,
+        bytes calldata data
+    ) external onlyOwner {
         _consumeAction(actionId, _hashUpgrade(newImpl, data));
         _authorizedImpl = newImpl;
-        // Calls back into `_authorizeUpgrade(newImpl)` which checks the flag.
+        // `_authorizeUpgrade` consumes and clears the flag before `data` is
+        // delegatecalled into the new implementation, so the clear can never
+        // overwrite V2 state that lands on this storage slot.
         upgradeToAndCall(newImpl, data);
-        delete _authorizedImpl;
         emit UpgradeCommitted(actionId, newImpl);
     }
 
@@ -306,9 +315,12 @@ contract ValidatorRegistry is
     event UpgradeQueued(uint256 indexed actionId, address indexed newImpl);
     event UpgradeCommitted(uint256 indexed actionId, address indexed newImpl);
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal view override {
+    /// @dev Authorized only when invoked indirectly via `commitUpgrade`. The
+    ///      flag is cleared here — before `upgradeToAndCall` delegatecalls the
+    ///      new implementation's initializer — so the clear can never zero out
+    ///      V2 state that occupies this storage slot.
+    function _authorizeUpgrade(address newImplementation) internal override {
         if (newImplementation != _authorizedImpl) revert UpgradeNotAuthorized();
+        delete _authorizedImpl;
     }
 }
